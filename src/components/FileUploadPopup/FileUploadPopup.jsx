@@ -181,7 +181,7 @@ const FileUploadPopup = ({ open, onClose, folders }) => {
                               size="small"
                               autoFocus
                               onBlur={() => setEditingIndex(null)}
-                              onKeyPress={(e) => {
+                              onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                   setEditingIndex(null);
                                 }
