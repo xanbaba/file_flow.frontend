@@ -1,9 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
 import { Auth0Provider } from '@auth0/auth0-react';
 import './App.css';
-import theme from './theme';
 import Layout from './layouts/Layout';
+import { ThemeProvider } from './contexts/ThemeContext';
 import HomePage from './pages/Home/HomePage';
 import StarredPage from './pages/Starred/StarredPage';
 import RecentPage from './pages/Recent/RecentPage';
@@ -21,7 +20,7 @@ function App() {
         scope: auth0Config.scope
       }}
     >
-      <ThemeProvider theme={theme}>
+      <ThemeProvider>
         <Router>
           <Layout>
             <Routes>

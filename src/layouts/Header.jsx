@@ -11,7 +11,8 @@ import {
   MenuItem,
   Divider,
   ListItemIcon,
-  useTheme
+  useTheme,
+  Tooltip
 } from '@mui/material';
 import {
   KeyboardArrowDown as KeyboardArrowDownIcon
@@ -21,16 +22,31 @@ import {
   Logout as LogoutIcon,
   Person as PersonIcon,
   Help as HelpIcon,
-  Notifications as NotificationsIcon
+  Notifications as NotificationsIcon,
+  LightMode as LightModeIcon,
+  DarkMode as DarkModeIcon
 } from '@mui/icons-material';
+import { useThemeContext } from '../contexts/ThemeContext';
 import UserProfilePopup from '../components/UserProfilePopup/UserProfilePopup';
+import NotificationPanel from '../components/NotificationPanel/NotificationPanel';
 
 const Header = () => {
   const theme = useTheme();
+  const { themeMode, toggleTheme } = useThemeContext();
   const [anchorEl, setAnchorEl] = useState(null);
+  const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
   const [profilePopupOpen, setProfilePopupOpen] = useState(false);
   const [initialSection, setInitialSection] = useState('profile');
   const open = Boolean(anchorEl);
+  const notificationOpen = Boolean(notificationAnchorEl);
+
+  const handleNotificationClick = (event) => {
+    setNotificationAnchorEl(event.currentTarget);
+  };
+
+  const handleNotificationClose = () => {
+    setNotificationAnchorEl(null);
+  };
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -64,8 +80,42 @@ const Header = () => {
         <Toolbar sx={{padding: {xs: 1, sm: 2}}}>
           <Box sx={{flexGrow: 1}}/>
           <Box sx={{display: {xs: 'none', md: 'flex'}}}>
+            {/* Theme Toggle Button */}
+            <Tooltip title={`Switch to ${themeMode === 'light' ? 'dark' : 'light'} mode`}>
+              <IconButton
+                  size="medium"
+                  onClick={toggleTheme}
+                  sx={{
+                    color: theme.palette.text.primary,
+                    backgroundColor: 'transparent',
+                    borderRadius: '12px',
+                    padding: '8px',
+                    mr: 1,
+                    '&:hover': {
+                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                    }
+                  }}
+              >
+                {themeMode === 'light' ? (
+                  <DarkModeIcon sx={{
+                    fontSize: '1.5rem',
+                    strokeWidth: 1.5,
+                    borderRadius: '8px'
+                  }}/>
+                ) : (
+                  <LightModeIcon sx={{
+                    fontSize: '1.5rem',
+                    strokeWidth: 1.5,
+                    borderRadius: '8px'
+                  }}/>
+                )}
+              </IconButton>
+            </Tooltip>
+
+            {/* Notifications Button */}
             <IconButton
                 size="medium"
+                onClick={handleNotificationClick}
                 sx={{
                   color: theme.palette.text.primary,
                   backgroundColor: 'transparent',
@@ -84,6 +134,13 @@ const Header = () => {
                 borderRadius: '8px'
               }}/>
             </IconButton>
+
+            {/* Notification Panel */}
+            <NotificationPanel 
+              anchorEl={notificationAnchorEl}
+              open={notificationOpen}
+              onClose={handleNotificationClose}
+            />
             <Box
                 sx={{
                   display: 'flex',

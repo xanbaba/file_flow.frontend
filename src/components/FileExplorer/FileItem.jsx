@@ -4,18 +4,79 @@ import {
   Folder as FolderIcon,
   Description as FileIcon,
   StarBorder as StarBorderIcon,
-  Star as StarIcon
+  Star as StarIcon,
+  MoreVert as MoreVertIcon
 } from '@mui/icons-material';
+import FileContextMenu from './FileContextMenu';
+import RenameDialog from './RenameDialog';
+import MoveToDialog from './MoveToDialog';
 
 const FileItem = ({ item, viewMode, onClick }) => {
   const theme = useTheme();
   const [isStarred, setIsStarred] = useState(item.starred || false);
   const [isHovered, setIsHovered] = useState(false);
 
+  // Context menu state
+  const [contextMenuAnchorEl, setContextMenuAnchorEl] = useState(null);
+  const contextMenuOpen = Boolean(contextMenuAnchorEl);
+
+  // Dialog states
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+
   const handleStarClick = (e) => {
     e.stopPropagation();
     setIsStarred(!isStarred);
     // Here you would typically call a function to update the starred status in your data store
+  };
+
+  const handleContextMenu = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuButtonClick = (event) => {
+    event.stopPropagation();
+    setContextMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenuAnchorEl(null);
+  };
+
+  // Action handlers
+  const handleRename = () => {
+    setRenameDialogOpen(true);
+  };
+
+  const handleRenameSubmit = (newName) => {
+    console.log(`Renaming ${item.name} to ${newName}`);
+    // Here you would typically call a function to update the name in your data store
+  };
+
+  const handleMoveToTrash = () => {
+    console.log(`Moving ${item.name} to trash`);
+    // Here you would typically call a function to move the item to trash in your data store
+  };
+
+  const handleMoveTo = () => {
+    setMoveDialogOpen(true);
+  };
+
+  const handleMoveSubmit = (folderId) => {
+    console.log(`Moving ${item.name} to folder with ID ${folderId}`);
+    // Here you would typically call a function to move the item to the selected folder in your data store
+  };
+
+  const handleDownload = () => {
+    console.log(`Downloading ${item.name}`);
+    // Here you would typically call a function to download the file
+  };
+
+  const handleUploadTo = () => {
+    console.log(`Uploading to ${item.name}`);
+    // Here you would typically open a file picker and upload the selected files to the folder
   };
 
   if (viewMode === 'grid') {
@@ -41,6 +102,7 @@ const FileItem = ({ item, viewMode, onClick }) => {
         onClick={onClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onContextMenu={handleContextMenu}
       >
         {/* Top section with icon and name */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, position: 'relative' }}>
@@ -75,12 +137,14 @@ const FileItem = ({ item, viewMode, onClick }) => {
           >
             {item.name}
           </Typography>
+
+          {/* Star Button - moved to the left */}
           <IconButton 
             size="small" 
             onClick={handleStarClick}
             sx={{ 
               position: 'absolute',
-              right: -8,
+              right: 16, // Moved left to make room for menu button
               top: -8,
               color: isStarred ? theme.palette.warning.main : 'rgba(0, 0, 0, 0.3)',
               opacity: isStarred || isHovered ? 1 : 0,
@@ -92,7 +156,56 @@ const FileItem = ({ item, viewMode, onClick }) => {
           >
             {isStarred ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
           </IconButton>
+
+          {/* Menu Button */}
+          <IconButton 
+            size="small" 
+            onClick={handleMenuButtonClick}
+            sx={{ 
+              position: 'absolute',
+              right: -8,
+              top: -8,
+              color: 'rgba(0, 0, 0, 0.5)',
+              opacity: isHovered ? 1 : 0,
+              transition: 'opacity 0.2s ease-in-out',
+              '&:hover': {
+                backgroundColor: 'transparent',
+              }
+            }}
+          >
+            <MoreVertIcon fontSize="small" />
+          </IconButton>
         </Box>
+
+        {/* Context Menu */}
+        <FileContextMenu
+          anchorEl={contextMenuAnchorEl}
+          open={contextMenuOpen}
+          onClose={handleCloseContextMenu}
+          isFolder={item.type === 'folder'}
+          onRename={handleRename}
+          onMoveToTrash={handleMoveToTrash}
+          onMoveTo={handleMoveTo}
+          onDownload={handleDownload}
+          onUploadTo={handleUploadTo}
+        />
+
+        {/* Dialogs */}
+        <RenameDialog
+          open={renameDialogOpen}
+          onClose={() => setRenameDialogOpen(false)}
+          onRename={handleRenameSubmit}
+          itemName={item.name}
+          itemType={item.type}
+        />
+
+        <MoveToDialog
+          open={moveDialogOpen}
+          onClose={() => setMoveDialogOpen(false)}
+          onMove={handleMoveSubmit}
+          itemName={item.name}
+          itemType={item.type}
+        />
       </Paper>
     );
   } else {
@@ -112,6 +225,7 @@ const FileItem = ({ item, viewMode, onClick }) => {
         onClick={onClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onContextMenu={handleContextMenu}
       >
         <Box
           sx={{
@@ -133,6 +247,8 @@ const FileItem = ({ item, viewMode, onClick }) => {
             {item.name}
           </Typography>
         </Box>
+
+        {/* Star Button - moved to the left */}
         <IconButton 
           size="small" 
           onClick={handleStarClick}
@@ -145,6 +261,49 @@ const FileItem = ({ item, viewMode, onClick }) => {
         >
           {isStarred ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
         </IconButton>
+
+        {/* Menu Button */}
+        <IconButton 
+          size="small" 
+          onClick={handleMenuButtonClick}
+          sx={{ 
+            color: 'rgba(0, 0, 0, 0.5)',
+            opacity: isHovered ? 1 : 0,
+            transition: 'opacity 0.2s ease-in-out',
+          }}
+        >
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
+
+        {/* Context Menu */}
+        <FileContextMenu
+          anchorEl={contextMenuAnchorEl}
+          open={contextMenuOpen}
+          onClose={handleCloseContextMenu}
+          isFolder={item.type === 'folder'}
+          onRename={handleRename}
+          onMoveToTrash={handleMoveToTrash}
+          onMoveTo={handleMoveTo}
+          onDownload={handleDownload}
+          onUploadTo={handleUploadTo}
+        />
+
+        {/* Dialogs */}
+        <RenameDialog
+          open={renameDialogOpen}
+          onClose={() => setRenameDialogOpen(false)}
+          onRename={handleRenameSubmit}
+          itemName={item.name}
+          itemType={item.type}
+        />
+
+        <MoveToDialog
+          open={moveDialogOpen}
+          onClose={() => setMoveDialogOpen(false)}
+          onMove={handleMoveSubmit}
+          itemName={item.name}
+          itemType={item.type}
+        />
       </Box>
     );
   }
