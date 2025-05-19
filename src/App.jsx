@@ -5,6 +5,9 @@ import './App.css';
 import theme from './theme';
 import Layout from './layouts/Layout';
 import HomePage from './pages/Home/HomePage';
+import StarredPage from './pages/Starred/StarredPage';
+import RecentPage from './pages/Recent/RecentPage';
+import TrashPage from './pages/Trash/TrashPage';
 import { auth0Config } from './config';
 
 function App() {
@@ -23,7 +26,9 @@ function App() {
           <Layout>
             <Routes>
               <Route path="/" element={<HomePage />} />
-              {/* Add more routes as needed */}
+              <Route path="/starred" element={<StarredPage />} />
+              <Route path="/recent" element={<RecentPage />} />
+              <Route path="/trash" element={<TrashPage />} />
             </Routes>
           </Layout>
         </Router>
