@@ -1,19 +1,25 @@
-import React, {useState} from 'react';
-import {Box, Typography, Paper, Grid, Button, IconButton, Divider, Chip, useTheme, Link} from '@mui/material';
+import React, { useState } from 'react';
+import {Box, Typography, Button, useTheme} from '@mui/material';
 import {
   CloudUpload as CloudUploadIcon,
   CreateNewFolder as CreateNewFolderIcon,
-  ViewList as ViewListIcon,
-  ViewModule as ViewModuleIcon,
-  Folder as FolderIcon,
-  Description as FileIcon,
-  NavigateNext as NavigateNextIcon
 } from '@mui/icons-material';
-import {uiConfig} from '../../config';
+import { useNavigate } from 'react-router-dom';
+import FileExplorer from '../../components/FileExplorer/FileExplorer';
+import FileUploadPopup from '../../components/FileUploadPopup/FileUploadPopup';
 
 const HomePage = () => {
-  const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list' for All Files section
   const theme = useTheme();
+  const navigate = useNavigate();
+  const [isUploadPopupOpen, setIsUploadPopupOpen] = useState(false);
+
+  const handleOpenUploadPopup = () => {
+    setIsUploadPopupOpen(true);
+  };
+
+  const handleCloseUploadPopup = () => {
+    setIsUploadPopupOpen(false);
+  };
 
   // Mock data for files and folders
   const items = [
@@ -36,7 +42,7 @@ const HomePage = () => {
     },
     {
       id: 6,
-      name: 'Marketing Plan',
+      name: 'Marketing Plan with a Very Long Name That Should Be Truncated',
       type: 'folder',
       lastModified: '2023-05-14',
       color: theme.palette.custom.lightGreen
@@ -68,6 +74,16 @@ const HomePage = () => {
   // Recent items (first 5)
   const recentItems = items.slice(0, 5);
 
+  // Extract folders from items for the upload popup
+  const folders = items.filter(item => item.type === 'folder').map(folder => ({
+    id: folder.id,
+    name: folder.name
+  }));
+
+  const handleShowMoreRecent = () => {
+    navigate('/recent');
+  };
+
   return (
       <Box sx={{flexGrow: 1}}>
         {/* Action Bar */}
@@ -79,6 +95,7 @@ const HomePage = () => {
             <Button
                 variant="contained"
                 startIcon={<CloudUploadIcon/>}
+                onClick={handleOpenUploadPopup}
                 sx={{
                   mr: 2,
                   bgcolor: theme.palette.primary.dark,
@@ -109,309 +126,31 @@ const HomePage = () => {
         </Box>
 
         {/* Recent Section */}
-        <Box sx={{mb: 4}}>
-          <Box sx={{display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'center'}}>
-            <Typography variant="h6" component="h2" sx={{fontWeight: 600, color: theme.palette.text.primary}}>
-              Recent
-            </Typography>
-            <Link
-                component="button"
-                variant="body2"
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: theme.palette.primary.main,
-                  textDecoration: 'none',
-                  '&:hover': {
-                    textDecoration: 'underline'
-                  }
-                }}
-            >
-              Show more
-              <NavigateNextIcon fontSize="small"/>
-            </Link>
-          </Box>
-
-          {/* Recent Files and Folders - Always in block view with horizontal scroll */}
-          <Box
-              sx={{
-                display: 'flex',
-                overflowX: 'auto',
-                pb: 2,
-                gap: 3,
-                '&::-webkit-scrollbar': {
-                  height: '8px',
-                },
-                '&::-webkit-scrollbar-track': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                  borderRadius: '10px',
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                  borderRadius: '10px',
-                }
-              }}
-          >
-            {recentItems.map((item) => (
-                <Paper
-                    key={item.id}
-                    elevation={0}
-                    sx={{
-                      p: 2,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      height: 150,
-                      width: 220,
-                      minWidth: 220,
-                      cursor: 'pointer',
-                      marginTop: "5px",
-                      borderRadius: '16px',
-                      overflow: 'hidden',
-                      transition: 'all 0.2s ease-in-out',
-                      border: '1px solid rgba(0, 0, 0, 0.06)',
-                      '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: '0px 8px 16px rgba(0, 0, 0, 0.08)',
-                      },
-                    }}
-                >
-                  {/* Top section with icon and name */}
-                  <Box sx={{display: 'flex', alignItems: 'center', mb: 1}}>
-                    <Box
-                        sx={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: '8px',
-                          bgcolor: item.color,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          mr: 1.5,
-                          color: item.type === 'folder' ? '#000000' : '#ffffff',
-                        }}
-                    >
-                      {item.type === 'folder' ? (
-                          <FolderIcon sx={{fontSize: 24}}/>
-                      ) : (
-                          <FileIcon sx={{fontSize: 24}}/>
-                      )}
-                    </Box>
-                    <Typography
-                        variant="subtitle1"
-                        component="h2"
-                        sx={{
-                          fontWeight: 500,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}
-                    >
-                      {item.name}
-                    </Typography>
-                  </Box>
-
-                  {/* Bottom section with type and date */}
-                  <Box sx={{display: 'flex', justifyContent: 'space-between', mt: 'auto'}}>
-                    <Chip
-                        label={item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-                        size="small"
-                        sx={{
-                          bgcolor: 'rgba(0, 0, 0, 0.04)',
-                          color: theme.palette.text.secondary,
-                          fontWeight: 500,
-                          fontSize: '0.7rem',
-                        }}
-                    />
-                    <Typography variant="caption" color="text.secondary">
-                      {item.lastModified}
-                    </Typography>
-                  </Box>
-                </Paper>
-            ))}
-          </Box>
-        </Box>
+        <FileExplorer
+            title="Recent"
+            items={recentItems}
+            showViewToggle={false}
+            defaultViewMode="grid"
+            showMoreLink={true}
+            onShowMoreClick={handleShowMoreRecent}
+            maxItems={5}
+            horizontalScroll={true}
+        />
 
         {/* All Files Section */}
-        <Box>
-          <Box sx={{display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'center'}}>
-            <Typography variant="h6" component="h2" sx={{fontWeight: 600, color: theme.palette.text.primary}}>
-              All Files
-            </Typography>
-            <Box sx={{
-              display: 'flex',
-              bgcolor: 'rgba(0, 0, 0, 0.03)',
-              borderRadius: '12px',
-              padding: '4px'
-            }}>
-              <IconButton
-                  onClick={() => setViewMode('list')}
-                  color={viewMode === 'list' ? 'primary' : 'default'}
-                  sx={{
-                    borderRadius: '8px',
-                    bgcolor: viewMode === 'list' ? 'rgba(155, 190, 199, 0.2)' : 'transparent'
-                  }}
-              >
-                <ViewListIcon/>
-              </IconButton>
-              <IconButton
-                  onClick={() => setViewMode('grid')}
-                  color={viewMode === 'grid' ? 'primary' : 'default'}
-                  sx={{
-                    borderRadius: '8px',
-                    bgcolor: viewMode === 'grid' ? 'rgba(155, 190, 199, 0.2)' : 'transparent'
-                  }}
-              >
-                <ViewModuleIcon/>
-              </IconButton>
-            </Box>
-          </Box>
+        <FileExplorer
+            title="All Files"
+            items={items}
+            showViewToggle={true}
+            defaultViewMode="list"
+        />
 
-          {/* All Files and Folders - Grid or List view */}
-          {viewMode === 'grid' ? (
-              <Grid container spacing={2}>
-                {items.map((item) => (
-                    <Grid item xs={3} key={item.id}>
-                      <Paper
-                          elevation={0}
-                          sx={{
-                            p: 2,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            height: 120,
-                            cursor: 'pointer',
-                            borderRadius: '12px',
-                            overflow: 'hidden',
-                            transition: 'all 0.2s ease-in-out',
-                            border: '1px solid rgba(0, 0, 0, 0.06)',
-                            '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: '0px 8px 16px rgba(0, 0, 0, 0.08)',
-                            },
-                          }}
-                      >
-                        {/* Top section with icon and name */}
-                        <Box sx={{display: 'flex', alignItems: 'center', mb: 1}}>
-                          <Box
-                              sx={{
-                                width: 32,
-                                height: 32,
-                                borderRadius: '8px',
-                                bgcolor: item.color,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                mr: 1.5,
-                                color: item.type === 'folder' ? '#000000' : '#ffffff',
-                              }}
-                          >
-                            {item.type === 'folder' ? (
-                                <FolderIcon sx={{fontSize: 20}}/>
-                            ) : (
-                                <FileIcon sx={{fontSize: 20}}/>
-                            )}
-                          </Box>
-                          <Typography
-                              variant="body2"
-                              component="h2"
-                              sx={{
-                                fontWeight: 500,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
-                              }}
-                          >
-                            {item.name}
-                          </Typography>
-                        </Box>
-
-                        {/* Bottom section with type and date */}
-                        <Box sx={{display: 'flex', justifyContent: 'space-between', mt: 'auto'}}>
-                          <Chip
-                              label={item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-                              size="small"
-                              sx={{
-                                bgcolor: 'rgba(0, 0, 0, 0.04)',
-                                color: theme.palette.text.secondary,
-                                fontWeight: 500,
-                                fontSize: '0.7rem',
-                              }}
-                          />
-                          <Typography variant="caption" color="text.secondary">
-                            {item.lastModified}
-                          </Typography>
-                        </Box>
-                      </Paper>
-                    </Grid>
-                ))}
-              </Grid>
-          ) : (
-              <Paper
-                  elevation={0}
-                  sx={{
-                    width: '100%',
-                    mb: 2,
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    border: '1px solid rgba(0, 0, 0, 0.06)',
-                  }}
-              >
-                {items.map((item, index) => (
-                    <React.Fragment key={item.id}>
-                      <Box
-                          sx={{
-                            p: 2,
-                            display: 'flex',
-                            alignItems: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.1s ease-in-out',
-                            '&:hover': {
-                              backgroundColor: 'rgba(0, 0, 0, 0.02)',
-                            },
-                          }}
-                      >
-                        <Box
-                            sx={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: '8px',
-                              bgcolor: item.color,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              mr: 2,
-                              color: item.type === 'folder' ? '#000000' : '#ffffff',
-                            }}
-                        >
-                          {item.type === 'folder' ? <FolderIcon/> : <FileIcon/>}
-                        </Box>
-                        <Box sx={{flexGrow: 1}}>
-                          <Typography variant="subtitle1" sx={{fontWeight: 500}}>
-                            {item.name}
-                          </Typography>
-                        </Box>
-                        <Box sx={{display: 'flex', alignItems: 'center'}}>
-                          <Chip
-                              label={item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-                              size="small"
-                              sx={{
-                                bgcolor: 'rgba(0, 0, 0, 0.04)',
-                                color: theme.palette.text.secondary,
-                                fontWeight: 500,
-                                fontSize: '0.7rem',
-                                mr: 2,
-                              }}
-                          />
-                          <Typography variant="body2" color="text.secondary" sx={{width: '120px'}}>
-                            {item.lastModified}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      {index < items.length - 1 && <Divider sx={{opacity: 0.5}}/>}
-                    </React.Fragment>
-                ))}
-              </Paper>
-          )}
-        </Box>
+        {/* File Upload Popup */}
+        <FileUploadPopup
+            open={isUploadPopupOpen}
+            onClose={handleCloseUploadPopup}
+            folders={folders}
+        />
       </Box>
   );
 };
