@@ -7,10 +7,6 @@ import {
   IconButton, 
   Button, 
   TextField, 
-  MenuItem, 
-  Select, 
-  FormControl, 
-  InputLabel, 
   List, 
   ListItem, 
   Divider, 
@@ -22,10 +18,10 @@ import {
   Close as CloseIcon,
   CloudUpload as CloudUploadIcon,
   Delete as DeleteIcon,
-  Edit as EditIcon,
-  Folder as FolderIcon
+  Edit as EditIcon
 } from '@mui/icons-material';
 import { useDropzone } from 'react-dropzone';
+import FolderSelector from '../FolderSelector/FolderSelector';
 
 const FileUploadPopup = ({ open, onClose, folders }) => {
   const theme = useTheme();
@@ -34,13 +30,17 @@ const FileUploadPopup = ({ open, onClose, folders }) => {
 
   // Handle file drop
   const onDrop = useCallback(acceptedFiles => {
-    const newFiles = acceptedFiles.map(file => ({
-      file,
-      name: file.name,
-      folder: folders && folders.length > 0 ? folders[0].id : null,
-      size: file.size,
-      type: file.type
-    }));
+    const newFiles = acceptedFiles.map(file => {
+      const defaultFolder = folders && folders.length > 0 ? folders[0] : null;
+      return {
+        file,
+        name: file.name,
+        folder: defaultFolder ? defaultFolder.id : null,
+        folderName: defaultFolder ? defaultFolder.name : null,
+        size: file.size,
+        type: file.type
+      };
+    });
     setUploadedFiles(prev => [...prev, ...newFiles]);
   }, [folders]);
 
@@ -54,9 +54,10 @@ const FileUploadPopup = ({ open, onClose, folders }) => {
   };
 
   // Handle folder selection
-  const handleFolderChange = (index, folderId) => {
+  const handleFolderChange = (index, folder) => {
     const updatedFiles = [...uploadedFiles];
-    updatedFiles[index].folder = folderId;
+    updatedFiles[index].folder = folder.id;
+    updatedFiles[index].folderName = folder.name;
     setUploadedFiles(updatedFiles);
   };
 
@@ -114,7 +115,7 @@ const FileUploadPopup = ({ open, onClose, folders }) => {
           </IconButton>
         </Box>
         <Divider sx={{ opacity: 0.6 }} />
-        
+
         {/* Content */}
         <DialogContent sx={{ flexGrow: 1, p: 3, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           {/* Dropzone */}
@@ -199,7 +200,7 @@ const FileUploadPopup = ({ open, onClose, folders }) => {
                               {file.name}
                             </Typography>
                           )}
-                          
+
                           {/* Edit button */}
                           <IconButton 
                             size="small" 
@@ -208,7 +209,7 @@ const FileUploadPopup = ({ open, onClose, folders }) => {
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
-                          
+
                           {/* Delete button */}
                           <IconButton 
                             size="small" 
@@ -218,34 +219,18 @@ const FileUploadPopup = ({ open, onClose, folders }) => {
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         </Box>
-                        
+
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           {/* File info */}
                           <Typography variant="body2" color="textSecondary">
                             {formatFileSize(file.size)}
                           </Typography>
-                          
+
                           {/* Folder selector */}
-                          <FormControl size="small" sx={{ minWidth: 200 }}>
-                            <InputLabel id={`folder-select-label-${index}`}>Destination Folder</InputLabel>
-                            <Select
-                              labelId={`folder-select-label-${index}`}
-                              value={file.folder || ''}
-                              onChange={(e) => handleFolderChange(index, e.target.value)}
-                              label="Destination Folder"
-                              startAdornment={<FolderIcon sx={{ mr: 1, ml: -0.5 }} />}
-                            >
-                              {folders ? folders.map((folder) => (
-                                <MenuItem key={folder.id} value={folder.id}>
-                                  {folder.name}
-                                </MenuItem>
-                              )) : (
-                                <MenuItem value="">
-                                  <em>No folders available</em>
-                                </MenuItem>
-                              )}
-                            </Select>
-                          </FormControl>
+                          <FolderSelector
+                            selectedFolder={file.folder ? { id: file.folder, name: file.folderName || 'Unknown Folder' } : null}
+                            onChange={(folder) => handleFolderChange(index, folder)}
+                          />
                         </Box>
                       </Box>
                     </ListItem>
@@ -256,7 +241,7 @@ const FileUploadPopup = ({ open, onClose, folders }) => {
             </Box>
           )}
         </DialogContent>
-        
+
         {/* Footer */}
         <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end', borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
           <Button 

@@ -7,11 +7,13 @@ import {
 import { useNavigate } from 'react-router-dom';
 import FileExplorer from '../../components/FileExplorer/FileExplorer';
 import FileUploadPopup from '../../components/FileUploadPopup/FileUploadPopup';
+import NewFolderPopup from '../../components/NewFolderPopup';
 
 const HomePage = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [isUploadPopupOpen, setIsUploadPopupOpen] = useState(false);
+  const [isNewFolderPopupOpen, setIsNewFolderPopupOpen] = useState(false);
 
   const handleOpenUploadPopup = () => {
     setIsUploadPopupOpen(true);
@@ -19,6 +21,20 @@ const HomePage = () => {
 
   const handleCloseUploadPopup = () => {
     setIsUploadPopupOpen(false);
+  };
+
+  const handleOpenNewFolderPopup = () => {
+    setIsNewFolderPopupOpen(true);
+  };
+
+  const handleCloseNewFolderPopup = () => {
+    setIsNewFolderPopupOpen(false);
+  };
+
+  const handleCreateFolder = (folderData) => {
+    console.log('Creating new folder:', folderData);
+    // Here you would typically call an API to create the folder
+    // For now, we'll just log the data
   };
 
   // Mock data for files and folders
@@ -109,6 +125,7 @@ const HomePage = () => {
             <Button
                 variant="outlined"
                 startIcon={<CreateNewFolderIcon/>}
+                onClick={handleOpenNewFolderPopup}
                 sx={{
                   borderColor: theme.palette.secondary.dark,
                   transition: 'all 0.15s ease-in-out',
@@ -150,6 +167,13 @@ const HomePage = () => {
             open={isUploadPopupOpen}
             onClose={handleCloseUploadPopup}
             folders={folders}
+        />
+
+        {/* New Folder Popup */}
+        <NewFolderPopup
+            open={isNewFolderPopupOpen}
+            onClose={handleCloseNewFolderPopup}
+            onCreateFolder={handleCreateFolder}
         />
       </Box>
   );
