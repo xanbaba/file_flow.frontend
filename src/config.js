@@ -2,16 +2,16 @@
 
 // Auth0 configuration
 export const auth0Config = {
-  domain: "your-auth0-domain.auth0.com",
-  clientId: "your-auth0-client-id",
+  domain: import.meta.env.VITE_AUTH0_DOMAIN || "your-auth0-domain.auth0.com",
+  clientId: import.meta.env.VITE_AUTH0_CLIENT_ID || "your-auth0-client-id",
   redirectUri: window.location.origin,
-  audience: "https://your-api-identifier",
-  scope: "openid profile email"
+  audience: import.meta.env.VITE_AUTH0_AUDIENCE || "https://your-api-identifier",
+  scope: import.meta.env.VITE_AUTH0_SCOPE || "openid profile email"
 };
 
 // API endpoints
 export const apiConfig = {
-  baseUrl: "https://api.example.com",
+  baseUrl: import.meta.env.VITE_API_BASE_URL || "https://api.example.com",
   endpoints: {
     files: "/files",
     folders: "/folders",
