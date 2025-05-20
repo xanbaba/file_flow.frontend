@@ -1,4 +1,5 @@
 import React, {useState} from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import {
   AppBar,
   Toolbar,
@@ -33,6 +34,7 @@ import NotificationPanel from '../components/NotificationPanel/NotificationPanel
 const Header = () => {
   const theme = useTheme();
   const { themeMode, toggleTheme } = useThemeContext();
+  const { user, logout } = useAuth0();
   const [anchorEl, setAnchorEl] = useState(null);
   const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
   const [profilePopupOpen, setProfilePopupOpen] = useState(false);
@@ -159,6 +161,8 @@ const Header = () => {
                 aria-expanded={open ? 'true' : undefined}
             >
               <Avatar
+                  src={user?.picture}
+                  alt={user?.name}
                   sx={{
                     width: 36,
                     height: 36,
@@ -167,7 +171,7 @@ const Header = () => {
                     fontWeight: 500
                   }}
               >
-                U
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
               </Avatar>
               <Typography
                   variant="body2"
@@ -177,7 +181,7 @@ const Header = () => {
                     color: theme.palette.text.primary
                   }}
               >
-                Username
+                {user?.name || 'User'}
               </Typography>
               <KeyboardArrowDownIcon
                   fontSize="small"
@@ -242,7 +246,10 @@ const Header = () => {
               Help
             </MenuItem>
             <Divider sx={{my: 1}}/>
-            <MenuItem sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}>
+            <MenuItem 
+              sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
+              onClick={() => logout({ returnTo: window.location.origin })}
+            >
               <ListItemIcon>
                 <LogoutIcon fontSize="small" sx={{color: theme.palette.error.main}}/>
               </ListItemIcon>

@@ -84,7 +84,7 @@ const FileItem = ({ item, viewMode, onClick }) => {
       <Paper
         elevation={0}
         sx={{
-          p: 1,
+          p: 1.5,
           display: 'flex',
           flexDirection: 'column',
           height: '100%',
@@ -98,6 +98,7 @@ const FileItem = ({ item, viewMode, onClick }) => {
             transform: 'translateY(-2px)',
             boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.08)',
           },
+          justifyContent: 'space-between',
         }}
         onClick={onClick}
         onMouseEnter={() => setIsHovered(true)}
@@ -105,7 +106,7 @@ const FileItem = ({ item, viewMode, onClick }) => {
         onContextMenu={handleContextMenu}
       >
         {/* Top section with icon and name */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, position: 'relative' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           <Box
             sx={{
               padding: "6px",
@@ -137,20 +138,28 @@ const FileItem = ({ item, viewMode, onClick }) => {
           >
             {item.name}
           </Typography>
+        </Box>
 
-          {/* Star Button - moved to the left */}
+        {/* Action buttons row */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          alignItems: 'center',
+          mt: 'auto'
+        }}>
+          {/* Star Button */}
           <IconButton 
             size="small" 
             onClick={handleStarClick}
             sx={{ 
-              position: 'absolute',
-              right: 16, // Moved left to make room for menu button
-              top: -8,
-              color: isStarred ? theme.palette.warning.main : 'rgba(0, 0, 0, 0.3)',
+              color: isStarred ? theme.palette.warning.main : theme.palette.text.secondary,
               opacity: isStarred || isHovered ? 1 : 0,
               transition: 'opacity 0.2s ease-in-out',
+              padding: '4px',
+              mr: 0.5,
+              backgroundColor: isHovered ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
               '&:hover': {
-                backgroundColor: 'transparent',
+                backgroundColor: 'rgba(0, 0, 0, 0.08)',
               }
             }}
           >
@@ -162,14 +171,13 @@ const FileItem = ({ item, viewMode, onClick }) => {
             size="small" 
             onClick={handleMenuButtonClick}
             sx={{ 
-              position: 'absolute',
-              right: -8,
-              top: -8,
-              color: 'rgba(0, 0, 0, 0.5)',
+              color: theme.palette.text.secondary,
               opacity: isHovered ? 1 : 0,
               transition: 'opacity 0.2s ease-in-out',
+              padding: '4px',
+              backgroundColor: isHovered ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
               '&:hover': {
-                backgroundColor: 'transparent',
+                backgroundColor: 'rgba(0, 0, 0, 0.08)',
               }
             }}
           >
@@ -212,7 +220,8 @@ const FileItem = ({ item, viewMode, onClick }) => {
     return (
       <Box
         sx={{
-          p: 2,
+          py: 1.5,
+          px: 2,
           display: 'flex',
           alignItems: 'center',
           cursor: 'pointer',
@@ -220,7 +229,8 @@ const FileItem = ({ item, viewMode, onClick }) => {
           '&:hover': {
             backgroundColor: 'rgba(0, 0, 0, 0.02)',
           },
-          position: 'relative'
+          borderRadius: '8px',
+          mx: 0.5
         }}
         onClick={onClick}
         onMouseEnter={() => setIsHovered(true)}
@@ -242,38 +252,59 @@ const FileItem = ({ item, viewMode, onClick }) => {
         >
           {item.type === 'folder' ? <FolderIcon /> : <FileIcon />}
         </Box>
-        <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+        <Box sx={{ flexGrow: 1, overflow: 'hidden', mr: 2 }}>
+          <Typography 
+            variant="subtitle1" 
+            sx={{ 
+              fontWeight: 500,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
             {item.name}
           </Typography>
         </Box>
 
-        {/* Star Button - moved to the left */}
-        <IconButton 
-          size="small" 
-          onClick={handleStarClick}
-          sx={{ 
-            color: isStarred ? theme.palette.warning.main : 'rgba(0, 0, 0, 0.3)',
-            opacity: isStarred || isHovered ? 1 : 0,
-            transition: 'opacity 0.2s ease-in-out',
-            mr: 1
-          }}
-        >
-          {isStarred ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
-        </IconButton>
+        {/* Action buttons container */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          {/* Star Button */}
+          <IconButton 
+            size="small" 
+            onClick={handleStarClick}
+            sx={{ 
+              color: isStarred ? theme.palette.warning.main : theme.palette.text.secondary,
+              opacity: isStarred || isHovered ? 1 : 0,
+              transition: 'opacity 0.2s ease-in-out',
+              mr: 1,
+              padding: '8px',
+              backgroundColor: isHovered ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.08)',
+              }
+            }}
+          >
+            {isStarred ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+          </IconButton>
 
-        {/* Menu Button */}
-        <IconButton 
-          size="small" 
-          onClick={handleMenuButtonClick}
-          sx={{ 
-            color: 'rgba(0, 0, 0, 0.5)',
-            opacity: isHovered ? 1 : 0,
-            transition: 'opacity 0.2s ease-in-out',
-          }}
-        >
-          <MoreVertIcon fontSize="small" />
-        </IconButton>
+          {/* Menu Button */}
+          <IconButton 
+            size="small" 
+            onClick={handleMenuButtonClick}
+            sx={{ 
+              color: theme.palette.text.secondary,
+              opacity: isHovered ? 1 : 0,
+              transition: 'opacity 0.2s ease-in-out',
+              padding: '8px',
+              backgroundColor: isHovered ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.08)',
+              }
+            }}
+          >
+            <MoreVertIcon fontSize="small" />
+          </IconButton>
+        </Box>
 
         {/* Context Menu */}
         <FileContextMenu
