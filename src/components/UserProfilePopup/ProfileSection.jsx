@@ -1,48 +1,29 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { 
   Box, 
   Typography, 
-  Avatar, 
-  Button, 
-  TextField, 
+  Avatar,
   Paper, 
   Grid, 
   IconButton, 
   useTheme, 
   alpha,
   LinearProgress,
-  Divider
 } from '@mui/material';
 import { 
-  Edit as EditIcon,
   PhotoCamera as PhotoCameraIcon,
   Storage as StorageIcon
 } from '@mui/icons-material';
 
 const ProfileSection = () => {
   const theme = useTheme();
-  const [displayName, setDisplayName] = useState('John Doe');
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [tempName, setTempName] = useState(displayName);
-  
+  const { user } = useAuth0();
+  console.log(user)
   // Mock data for storage usage
   const storageUsed = 10; // GB
   const storageTotal = 15; // GB
   const storagePercentage = (storageUsed / storageTotal) * 100;
-
-  const handleEditName = () => {
-    setTempName(displayName);
-    setIsEditingName(true);
-  };
-
-  const handleSaveName = () => {
-    setDisplayName(tempName);
-    setIsEditingName(false);
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditingName(false);
-  };
 
   return (
     <Box sx={{ maxWidth: '800px', mx: 'auto' }}>
@@ -59,10 +40,12 @@ const ProfileSection = () => {
         <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
           User Information
         </Typography>
-        
+
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
           <Box sx={{ position: 'relative' }}>
             <Avatar 
+              src={user?.picture}
+              alt={user?.name}
               sx={{ 
                 width: 100, 
                 height: 100, 
@@ -71,7 +54,7 @@ const ProfileSection = () => {
                 fontWeight: 500
               }}
             >
-              {displayName.charAt(0)}
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </Avatar>
             <IconButton 
               sx={{ 
@@ -89,53 +72,21 @@ const ProfileSection = () => {
               <PhotoCameraIcon fontSize="small" />
             </IconButton>
           </Box>
-          
+
           <Box sx={{ ml: 3, flexGrow: 1 }}>
-            {isEditingName ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <TextField 
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                  variant="outlined"
-                  size="small"
-                  fullWidth
-                  autoFocus
-                  sx={{ mr: 1 }}
-                />
-                <Button 
-                  variant="contained" 
-                  size="small" 
-                  onClick={handleSaveName}
-                  sx={{ mr: 1 }}
-                >
-                  Save
-                </Button>
-                <Button 
-                  variant="outlined" 
-                  size="small" 
-                  onClick={handleCancelEdit}
-                >
-                  Cancel
-                </Button>
-              </Box>
-            ) : (
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                  {displayName}
-                </Typography>
-                <IconButton size="small" onClick={handleEditName} sx={{ ml: 1 }}>
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            )}
-            
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                {user?.name || 'User'}
+              </Typography>
+            </Box>
+
             <Typography variant="body1" color="textSecondary">
-              john.doe@example.com
+              {user?.email || 'No email available'}
             </Typography>
           </Box>
         </Box>
       </Paper>
-      
+
       <Paper 
         elevation={0} 
         sx={{ 
@@ -165,7 +116,7 @@ const ProfileSection = () => {
             Storage Usage
           </Typography>
         </Box>
-        
+
         <Box sx={{ mb: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
             <Typography variant="body2" color="textSecondary">
@@ -189,7 +140,7 @@ const ProfileSection = () => {
             }}
           />
         </Box>
-        
+
         <Box sx={{ mt: 3 }}>
           <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
             Storage breakdown by file type
@@ -219,9 +170,6 @@ const ProfileSection = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                   <Typography variant="caption" color="textSecondary">
                     {item.size} GB
-                  </Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    {((item.size / storageUsed) * 100).toFixed(1)}%
                   </Typography>
                 </Box>
                 <LinearProgress 

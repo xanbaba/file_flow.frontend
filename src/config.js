@@ -10,11 +10,6 @@ export const auth0Config = {
 // API endpoints
 export const apiConfig = {
   baseUrl: import.meta.env.VITE_API_BASE_URL || "https://api.example.com",
-  endpoints: {
-    files: "/files",
-    folders: "/folders",
-    users: "/users"
-  }
 };
 
 // UI configuration
