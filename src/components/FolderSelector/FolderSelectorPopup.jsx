@@ -69,20 +69,7 @@ const mockFolderStructure = [
 const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder }) => {
   const theme = useTheme();
   const [selectedFolder, setSelectedFolder] = useState(initialSelectedFolder || null);
-  // Initialize openFolders state to show top-level folders by default
-  const initialOpenFolders = {};
-  mockFolderStructure.forEach(folder => {
-    if (folder.children && folder.children.length > 0) {
-      initialOpenFolders[folder.id] = true;
-      // Also initialize second-level folders as open
-      folder.children.forEach(childFolder => {
-        if (childFolder.children && childFolder.children.length > 0) {
-          initialOpenFolders[childFolder.id] = true;
-        }
-      });
-    }
-  });
-  const [openFolders, setOpenFolders] = useState(initialOpenFolders);
+  const [openFolders, setOpenFolders] = useState([]);
 
   // Log when component mounts and when popup opens
   useEffect(() => {
