@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Grid, Divider, useTheme, Link } from '@mui/mate
 import { NavigateNext as NavigateNextIcon } from '@mui/icons-material';
 import FileItem from './FileItem';
 import ViewToggle from './ViewToggle';
+import { useFileSystem } from '../../contexts/FileSystemContext';
 
 const FileExplorer = ({ 
   title, 
@@ -12,7 +13,8 @@ const FileExplorer = ({
   showMoreLink = false,
   onShowMoreClick,
   maxItems = null,
-  horizontalScroll = false
+  horizontalScroll = false,
+  isTrash = false
 }) => {
   const theme = useTheme();
   const [viewMode, setViewMode] = useState(defaultViewMode);
@@ -23,9 +25,15 @@ const FileExplorer = ({
     setViewMode(mode);
   };
 
+  const { navigateToFolder } = useFileSystem();
+
   const handleItemClick = (item) => {
     console.log('Item clicked:', item);
-    // Handle item click (e.g., navigate to folder, open file)
+    // Navigate to folder if the item is a folder
+    if (item.type === 'folder') {
+      navigateToFolder(item.id);
+    }
+    // For files, you might want to implement a preview or download functionality
   };
 
   return (
@@ -96,6 +104,7 @@ const FileExplorer = ({
                 item={item} 
                 viewMode="grid" 
                 onClick={() => handleItemClick(item)} 
+                isTrash={isTrash}
               />
             </Box>
           ))}
@@ -119,6 +128,7 @@ const FileExplorer = ({
                 item={item} 
                 viewMode="grid" 
                 onClick={() => handleItemClick(item)} 
+                isTrash={isTrash}
               />
             </Box>
           ))}
@@ -141,6 +151,7 @@ const FileExplorer = ({
                 item={item} 
                 viewMode="list" 
                 onClick={() => handleItemClick(item)} 
+                isTrash={isTrash}
               />
               {index < displayItems.length - 1 && <Divider sx={{ opacity: 0.5 }} />}
             </React.Fragment>

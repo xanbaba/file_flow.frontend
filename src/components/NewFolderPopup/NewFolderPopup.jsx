@@ -9,19 +9,24 @@ import {
   TextField, 
   Divider, 
   useTheme, 
-  alpha
+  alpha,
+  Alert
 } from '@mui/material';
 import { 
   Close as CloseIcon,
   CreateNewFolder as CreateNewFolderIcon
 } from '@mui/icons-material';
 import FolderSelector from '../FolderSelector/FolderSelector';
+import { useFileSystem } from '../../contexts/FileSystemContext';
 
 const NewFolderPopup = ({ open, onClose, onCreateFolder }) => {
+  const { currentFolder } = useFileSystem();
   const theme = useTheme();
   const [folderName, setFolderName] = useState('');
   const [selectedParentFolder, setSelectedParentFolder] = useState(null);
   const [nameError, setNameError] = useState('');
+  const [apiError, setApiError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset state when dialog opens
   React.useEffect(() => {
@@ -29,13 +34,15 @@ const NewFolderPopup = ({ open, onClose, onCreateFolder }) => {
       setFolderName('');
       setSelectedParentFolder(null);
       setNameError('');
+      setApiError('');
+      setIsSubmitting(false);
     }
   }, [open]);
 
   const handleFolderNameChange = (e) => {
     const value = e.target.value;
     setFolderName(value);
-    
+
     // Validate folder name
     if (!value.trim()) {
       setNameError('Folder name is required');
@@ -52,7 +59,7 @@ const NewFolderPopup = ({ open, onClose, onCreateFolder }) => {
     setSelectedParentFolder(folder);
   };
 
-  const handleCreateFolder = () => {
+  const handleCreateFolder = async () => {
     if (!folderName.trim()) {
       setNameError('Folder name is required');
       return;
@@ -62,14 +69,26 @@ const NewFolderPopup = ({ open, onClose, onCreateFolder }) => {
       return;
     }
 
-    // Call the onCreateFolder callback with the new folder data
-    onCreateFolder({
-      name: folderName.trim(),
-      parentFolder: selectedParentFolder
-    });
+    // Clear any previous API errors
+    setApiError('');
+    setIsSubmitting(true);
 
-    // Close the dialog
-    onClose();
+    try {
+      // Call the onCreateFolder callback with the new folder data
+      await onCreateFolder({
+        folderName: folderName.trim(),
+        targetFolderId: selectedParentFolder ? selectedParentFolder.id : null
+      });
+
+      // Close the dialog only if successful
+      onClose();
+    } catch (error) {
+      // Display the error message from the API
+      setApiError(error.message || 'Failed to create folder. Please try again.');
+      console.error('Error creating folder:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -104,6 +123,16 @@ const NewFolderPopup = ({ open, onClose, onCreateFolder }) => {
 
         {/* Content */}
         <DialogContent sx={{ flexGrow: 1, p: 3, overflow: 'auto' }}>
+          {apiError && (
+            <Alert 
+              severity="error" 
+              sx={{ mb: 3, borderRadius: '8px' }}
+              onClose={() => setApiError('')}
+            >
+              {apiError}
+            </Alert>
+          )}
+
           <Box sx={{ mb: 4 }}>
             <Typography variant="body1" sx={{ mb: 1, fontWeight: 500 }}>
               Folder Name
@@ -116,6 +145,7 @@ const NewFolderPopup = ({ open, onClose, onCreateFolder }) => {
               error={!!nameError}
               helperText={nameError}
               autoFocus
+              disabled={isSubmitting}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: '8px',
@@ -134,6 +164,8 @@ const NewFolderPopup = ({ open, onClose, onCreateFolder }) => {
             <FolderSelector
               selectedFolder={selectedParentFolder}
               onChange={handleParentFolderChange}
+              disabled={isSubmitting}
+              currentFolder={currentFolder}
             />
           </Box>
         </DialogContent>
@@ -144,16 +176,17 @@ const NewFolderPopup = ({ open, onClose, onCreateFolder }) => {
             variant="outlined" 
             onClick={onClose} 
             sx={{ mr: 2 }}
+            disabled={isSubmitting}
           >
             Cancel
           </Button>
           <Button 
             variant="contained" 
             onClick={handleCreateFolder}
-            disabled={!folderName.trim() || !!nameError}
+            disabled={!folderName.trim() || !!nameError || isSubmitting}
             startIcon={<CreateNewFolderIcon />}
           >
-            Create Folder
+            {isSubmitting ? 'Creating...' : 'Create Folder'}
           </Button>
         </Box>
       </Box>

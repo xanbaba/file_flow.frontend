@@ -13,94 +13,113 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Collapse
+  Collapse,
+  CircularProgress
 } from '@mui/material';
 import { 
   Close as CloseIcon,
   Folder as FolderIcon,
   ChevronRight as ChevronRightIcon,
-  ExpandMore as ExpandMoreIcon
+  ExpandMore as ExpandMoreIcon,
+  Home as HomeIcon
 } from '@mui/icons-material';
-
-// Mock hierarchical folder structure
-const mockFolderStructure = [
-  {
-    id: 1,
-    name: 'Documents',
-    children: [
-      {
-        id: 11,
-        name: 'Work',
-        children: [
-          { id: 111, name: 'Projects', children: [] },
-          { id: 112, name: 'Reports', children: [] }
-        ]
-      },
-      {
-        id: 12,
-        name: 'Personal',
-        children: [
-          { id: 121, name: 'Photos', children: [] },
-          { id: 122, name: 'Finance', children: [] }
-        ]
-      }
-    ]
-  },
-  {
-    id: 2,
-    name: 'Images',
-    children: [
-      { id: 21, name: 'Vacation', children: [] },
-      { id: 22, name: 'Work', children: [] }
-    ]
-  },
-  {
-    id: 6,
-    name: 'Marketing Plan',
-    children: []
-  },
-  {
-    id: 7,
-    name: 'Financial Report',
-    children: []
-  }
-];
+import { fetchFolderChildren } from '../../services/api';
 
 const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder }) => {
   const theme = useTheme();
   const [selectedFolder, setSelectedFolder] = useState(initialSelectedFolder || null);
-  const [openFolders, setOpenFolders] = useState([]);
+  const [openFolders, setOpenFolders] = useState({});
+  const [folders, setFolders] = useState({});
+  const [loadingFolders, setLoadingFolders] = useState({});
+  const [rootFolders, setRootFolders] = useState([]);
+  const [isRootLoading, setIsRootLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Log when component mounts and when popup opens
-  useEffect(() => {
-    console.log('FolderSelectorPopup mounted');
-    console.log('mockFolderStructure:', mockFolderStructure);
-  }, []);
-
+  // Fetch root folders when component mounts or popup opens
   useEffect(() => {
     if (open) {
-      console.log('Popup opened, selected folder:', selectedFolder);
+      fetchRootFolders();
+
+      // If initialSelectedFolder is 'root', select it
+      if (initialSelectedFolder === 'root') {
+        setSelectedFolder('root');
+      }
     }
-  }, [open, selectedFolder]);
+  }, [open, initialSelectedFolder]);
+
+  // Fetch root folders
+  const fetchRootFolders = async () => {
+    setIsRootLoading(true);
+    setError(null);
+    try {
+      const rootChildren = await fetchFolderChildren('root');
+      // Filter to only include folders (not files)
+      const folderItems = rootChildren.filter(item => item.type === 'folder');
+      setRootFolders(folderItems);
+    } catch (err) {
+      console.error('Error fetching root folders:', err);
+      setError('Failed to load folders. Please try again.');
+    } finally {
+      setIsRootLoading(false);
+    }
+  };
+
+  // Fetch children of a specific folder
+  const fetchFolderChildrenData = async (folderId) => {
+    if (folders[folderId]) {
+      return; // Already fetched
+    }
+
+    setLoadingFolders(prev => ({ ...prev, [folderId]: true }));
+    try {
+      const children = await fetchFolderChildren(folderId);
+      // Filter to only include folders (not files)
+      const folderItems = children.filter(item => item.type === 'folder');
+      setFolders(prev => ({ ...prev, [folderId]: folderItems }));
+    } catch (err) {
+      console.error(`Error fetching children for folder ${folderId}:`, err);
+      setError(`Failed to load folder contents. Please try again.`);
+    } finally {
+      setLoadingFolders(prev => ({ ...prev, [folderId]: false }));
+    }
+  };
 
   const handleConfirm = () => {
     if (selectedFolder) {
+      // Special case for root selection
+      if (selectedFolder === 'root') {
+        // Create a special object for root
+        const rootFolder = {
+          id: null,
+          name: 'Home Directory',
+          type: 'folder'
+        };
+        onSelect(rootFolder);
+        onClose();
+        return;
+      }
+
       // Find the folder object by id
-      const findFolder = (folders, id) => {
-        for (const folder of folders) {
-          if (folder.id.toString() === id) {
+      const findFolder = () => {
+        // Check in root folders
+        let folder = rootFolders.find(f => f.id.toString() === selectedFolder);
+
+        if (folder) {
+          return folder;
+        }
+
+        // Check in all fetched folders
+        for (const [parentId, children] of Object.entries(folders)) {
+          folder = children.find(f => f.id.toString() === selectedFolder);
+          if (folder) {
             return folder;
           }
-          if (folder.children && folder.children.length > 0) {
-            const found = findFolder(folder.children, id);
-            if (found) return found;
-          }
         }
+
         return null;
       };
 
-      const folder = findFolder(mockFolderStructure, selectedFolder);
-      console.log('Found folder:', folder);
+      const folder = findFolder();
       if (folder) {
         onSelect(folder);
         onClose();
@@ -108,9 +127,16 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
     }
   };
 
-  // Toggle folder open/close state
+  // Toggle folder open/close state and fetch children if needed
   const toggleFolder = (folderId) => {
-    console.log('Toggling folder:', folderId);
+    const isOpen = openFolders[folderId];
+
+    // If we're opening the folder and haven't fetched its children yet, fetch them
+    if (!isOpen && !folders[folderId]) {
+      fetchFolderChildrenData(folderId);
+    }
+
+    // Toggle the open state
     setOpenFolders(prev => ({
       ...prev,
       [folderId]: !prev[folderId]
@@ -118,27 +144,38 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
   };
 
   // Custom folder tree component
-  const FolderTree = ({ folders, level = 0 }) => {
-    console.log(`Rendering FolderTree level ${level} with folders:`, folders);
+  const FolderTree = ({ folderList, level = 0, parentId = null }) => {
+    // If we're showing root folders
+    const foldersToShow = parentId === null ? rootFolders : folders[parentId] || [];
+    const isLoading = parentId === null ? isRootLoading : loadingFolders[parentId];
 
     const handleFolderClick = (e, folder) => {
-      console.log('Folder clicked:', folder);
       // Prevent event propagation to keep parent folders open
       e.stopPropagation();
       setSelectedFolder(folder.id.toString());
-
-      // Ensure all parent folders remain open when a nested folder is selected
-      if (folder.children && folder.children.length > 0 && !openFolders[folder.id]) {
-        toggleFolder(folder.id);
-      }
     };
 
-    // If no folders are available at the root level, show a message
-    if (folders.length === 0 && level === 0) {
+    const handleRootClick = (e) => {
+      // Select root level (null)
+      e.stopPropagation();
+      setSelectedFolder('root');
+    };
+
+    // Show loading indicator
+    if (isLoading) {
+      return (
+        <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+          <CircularProgress size={24} />
+        </Box>
+      );
+    }
+
+    // If no folders are available, show a message
+    if (foldersToShow.length === 0 && level > 0) {
       return (
         <Box sx={{ p: 2, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
-            No folders available. Please create a folder first.
+            No folders available in this location.
           </Typography>
         </Box>
       );
@@ -146,10 +183,53 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
 
     return (
       <List sx={{ pl: level * 2, py: 0 }}>
-        {folders.map((folder) => {
-          console.log(`Rendering folder in level ${level}:`, folder.name);
+        {/* Add Home Directory option at the top level */}
+        {level === 0 && (
+          <Box 
+            onClick={handleRootClick}
+            sx={{ 
+              cursor: 'pointer',
+              borderRadius: '8px',
+              p: 1.5,
+              mb: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              backgroundColor: selectedFolder === 'root' 
+                ? alpha(theme.palette.primary.main, 0.1)
+                : alpha(theme.palette.background.paper, 0.6),
+              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+              '&:hover': {
+                backgroundColor: selectedFolder === 'root'
+                  ? alpha(theme.palette.primary.main, 0.15)
+                  : alpha(theme.palette.background.paper, 0.9)
+              }
+            }}
+          >
+            <HomeIcon 
+              sx={{ 
+                color: theme.palette.primary.main,
+                mr: 1.5,
+                fontSize: '1.2rem'
+              }} 
+            />
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontWeight: selectedFolder === 'root' ? 600 : 500,
+                color: theme.palette.text.primary
+              }}
+            >
+              Home Directory
+            </Typography>
+          </Box>
+        )}
+        {foldersToShow.map((folder) => {
+          const folderId = folder.id.toString();
+          const hasChildren = folders[folderId] ? folders[folderId].length > 0 : true; // Assume folders might have children until we check
+          const isOpen = openFolders[folderId];
+
           return (
-            <React.Fragment key={folder.id}>
+            <React.Fragment key={folderId}>
               <ListItem 
                 component="div"
                 onClick={(e) => handleFolderClick(e, folder)}
@@ -157,7 +237,7 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
                   cursor: 'pointer',
                   borderRadius: '4px',
                   py: 1,
-                  backgroundColor: selectedFolder === folder.id.toString() 
+                  backgroundColor: selectedFolder === folderId 
                     ? alpha(theme.palette.primary.main, 0.1)
                     : 'transparent',
                   '&:hover': {
@@ -172,27 +252,27 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
                   primary={folder.name} 
                   primaryTypographyProps={{ 
                     variant: 'body2',
-                    fontWeight: selectedFolder === folder.id.toString() ? 600 : 400
+                    fontWeight: selectedFolder === folderId ? 600 : 400
                   }}
                 />
-                {folder.children && folder.children.length > 0 && (
-                  <IconButton 
-                    edge="end" 
-                    size="small" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFolder(folder.id);
-                    }}
-                  >
-                    {openFolders[folder.id] ? <ExpandMoreIcon /> : <ChevronRightIcon />}
-                  </IconButton>
-                )}
+                <IconButton 
+                  edge="end" 
+                  size="small" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFolder(folderId);
+                  }}
+                >
+                  {isOpen ? <ExpandMoreIcon /> : <ChevronRightIcon />}
+                </IconButton>
               </ListItem>
-              {folder.children && folder.children.length > 0 && (
-                <Collapse in={openFolders[folder.id]} timeout="auto" unmountOnExit>
-                  <FolderTree folders={folder.children} level={level + 1} />
-                </Collapse>
-              )}
+              <Collapse in={isOpen} timeout="auto" unmountOnExit>
+                <FolderTree 
+                  folderList={folders[folderId] || []} 
+                  level={level + 1} 
+                  parentId={folderId} 
+                />
+              </Collapse>
             </React.Fragment>
           );
         })}
@@ -243,7 +323,14 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
             <Typography variant="body2" sx={{ mb: 2 }}>
               Select a folder to store your files:
             </Typography>
-            <FolderTree folders={mockFolderStructure} />
+            {error && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="error">
+                  {error}
+                </Typography>
+              </Box>
+            )}
+            <FolderTree parentId={null} />
           </Box>
         </DialogContent>
 

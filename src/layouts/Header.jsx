@@ -13,7 +13,8 @@ import {
   Divider,
   ListItemIcon,
   useTheme,
-  Tooltip
+  Tooltip,
+  Button
 } from '@mui/material';
 import {
   KeyboardArrowDown as KeyboardArrowDownIcon
@@ -25,22 +26,38 @@ import {
   Help as HelpIcon,
   Notifications as NotificationsIcon,
   LightMode as LightModeIcon,
-  DarkMode as DarkModeIcon
+  DarkMode as DarkModeIcon,
+  CloudUpload as CloudUploadIcon,
+  CreateNewFolder as CreateNewFolderIcon
 } from '@mui/icons-material';
 import { useThemeContext } from '../contexts/ThemeContext';
+import { useFileSystem } from '../contexts/FileSystemContext';
 import UserProfilePopup from '../components/UserProfilePopup/UserProfilePopup';
 import NotificationPanel from '../components/NotificationPanel/NotificationPanel';
+import FileUploadPopup from '../components/FileUploadPopup/FileUploadPopup';
+import NewFolderPopup from '../components/NewFolderPopup';
 
 const Header = () => {
   const theme = useTheme();
   const { themeMode, toggleTheme } = useThemeContext();
   const { user, logout } = useAuth0();
+  const { createFolder, refreshCurrentFolder, folderContents } = useFileSystem();
   const [anchorEl, setAnchorEl] = useState(null);
   const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
   const [profilePopupOpen, setProfilePopupOpen] = useState(false);
   const [initialSection, setInitialSection] = useState('profile');
+  const [isUploadPopupOpen, setIsUploadPopupOpen] = useState(false);
+  const [isNewFolderPopupOpen, setIsNewFolderPopupOpen] = useState(false);
   const open = Boolean(anchorEl);
   const notificationOpen = Boolean(notificationAnchorEl);
+
+  // Extract folders from folderContents for the upload popup
+  const folders = folderContents
+    .filter(item => item.type === 'folder')
+    .map(folder => ({
+      id: folder.id,
+      name: folder.name
+    }));
 
   const handleNotificationClick = (event) => {
     setNotificationAnchorEl(event.currentTarget);
@@ -64,6 +81,34 @@ const Header = () => {
     setAnchorEl(null);
   };
 
+  const handleOpenUploadPopup = () => {
+    setIsUploadPopupOpen(true);
+  };
+
+  const handleCloseUploadPopup = () => {
+    setIsUploadPopupOpen(false);
+  };
+
+  const handleOpenNewFolderPopup = () => {
+    setIsNewFolderPopupOpen(true);
+  };
+
+  const handleCloseNewFolderPopup = () => {
+    setIsNewFolderPopupOpen(false);
+  };
+
+  const handleCreateFolder = async (folderData) => {
+    try {
+      await createFolder(folderData.folderName, folderData.targetFolderId);
+      refreshCurrentFolder();
+      handleCloseNewFolderPopup();
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      // Let the error propagate to the NewFolderPopup component
+      throw error;
+    }
+  };
+
   return (
       <AppBar
           position="static"
@@ -82,6 +127,42 @@ const Header = () => {
         <Toolbar sx={{padding: {xs: 1, sm: 2}}}>
           <Box sx={{flexGrow: 1}}/>
           <Box sx={{display: {xs: 'none', md: 'flex'}}}>
+            {/* Upload Button */}
+            <Button
+              variant="contained"
+              startIcon={<CloudUploadIcon/>}
+              onClick={handleOpenUploadPopup}
+              sx={{
+                mr: 2,
+                bgcolor: theme.palette.primary.dark,
+                '&:hover': {
+                  bgcolor: theme.palette.primary.main,
+                }
+              }}
+            >
+              Upload
+            </Button>
+
+            {/* New Folder Button */}
+            <Button
+              variant="outlined"
+              startIcon={<CreateNewFolderIcon/>}
+              onClick={handleOpenNewFolderPopup}
+              sx={{
+                mr: 2,
+                borderColor: theme.palette.secondary.dark,
+                transition: 'all 0.15s ease-in-out',
+                color: theme.palette.secondary.dark,
+                '&:hover': {
+                  borderColor: theme.palette.secondary.main,
+                  color: theme.palette.secondary.main,
+                  bgcolor: 'rgba(226, 195, 145, 0.04)',
+                }
+              }}
+            >
+              New Folder
+            </Button>
+
             {/* Theme Toggle Button */}
             <Tooltip title={`Switch to ${themeMode === 'light' ? 'dark' : 'light'} mode`}>
               <IconButton
@@ -262,6 +343,20 @@ const Header = () => {
           open={profilePopupOpen} 
           onClose={() => setProfilePopupOpen(false)} 
           initialSection={initialSection}
+        />
+
+        {/* File Upload Popup */}
+        <FileUploadPopup
+          open={isUploadPopupOpen}
+          onClose={handleCloseUploadPopup}
+          folders={folders}
+        />
+
+        {/* New Folder Popup */}
+        <NewFolderPopup
+          open={isNewFolderPopupOpen}
+          onClose={handleCloseNewFolderPopup}
+          onCreateFolder={handleCreateFolder}
         />
       </AppBar>
   );

@@ -10,19 +10,31 @@ import {
 import FileContextMenu from './FileContextMenu';
 import RenameDialog from './RenameDialog';
 import MoveToDialog from './MoveToDialog';
+import FileUploadPopup from '../FileUploadPopup/FileUploadPopup';
 
-const FileItem = ({ item, viewMode, onClick }) => {
+const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
   const theme = useTheme();
   const [isStarred, setIsStarred] = useState(item.starred || false);
   const [isHovered, setIsHovered] = useState(false);
 
   // Context menu state
   const [contextMenuAnchorEl, setContextMenuAnchorEl] = useState(null);
-  const contextMenuOpen = Boolean(contextMenuAnchorEl);
+  const [contextMenuPosition, setContextMenuPosition] = useState(null);
+  const [isRightClick, setIsRightClick] = useState(false);
+  const contextMenuOpen = Boolean(contextMenuAnchorEl) || Boolean(contextMenuPosition);
 
   // Dialog states
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [isUploadPopupOpen, setIsUploadPopupOpen] = useState(false);
+
+  // Mock data for folders (in a real app, this would come from props or a context)
+  const folders = [
+    { id: 1, name: 'Documents' },
+    { id: 2, name: 'Images' },
+    { id: 6, name: 'Marketing Plan' },
+    { id: 7, name: 'Financial Report' }
+  ];
 
   const handleStarClick = (e) => {
     e.stopPropagation();
@@ -33,16 +45,22 @@ const FileItem = ({ item, viewMode, onClick }) => {
   const handleContextMenu = (event) => {
     event.preventDefault();
     event.stopPropagation();
-    setContextMenuAnchorEl(event.currentTarget);
+    setContextMenuPosition({ top: event.clientY, left: event.clientX });
+    setContextMenuAnchorEl(null);
+    setIsRightClick(true);
   };
 
   const handleMenuButtonClick = (event) => {
     event.stopPropagation();
     setContextMenuAnchorEl(event.currentTarget);
+    setContextMenuPosition(null);
+    setIsRightClick(false);
   };
 
   const handleCloseContextMenu = () => {
     setContextMenuAnchorEl(null);
+    setContextMenuPosition(null);
+    setIsRightClick(false);
   };
 
   // Action handlers
@@ -76,7 +94,12 @@ const FileItem = ({ item, viewMode, onClick }) => {
 
   const handleUploadTo = () => {
     console.log(`Uploading to ${item.name}`);
-    // Here you would typically open a file picker and upload the selected files to the folder
+    // Open the upload popup
+    setIsUploadPopupOpen(true);
+  };
+
+  const handleCloseUploadPopup = () => {
+    setIsUploadPopupOpen(false);
   };
 
   if (viewMode === 'grid') {
@@ -196,6 +219,9 @@ const FileItem = ({ item, viewMode, onClick }) => {
           onMoveTo={handleMoveTo}
           onDownload={handleDownload}
           onUploadTo={handleUploadTo}
+          position={contextMenuPosition}
+          isRightClick={isRightClick}
+          isTrash={isTrash}
         />
 
         {/* Dialogs */}
@@ -213,6 +239,13 @@ const FileItem = ({ item, viewMode, onClick }) => {
           onMove={handleMoveSubmit}
           itemName={item.name}
           itemType={item.type}
+        />
+
+        {/* File Upload Popup */}
+        <FileUploadPopup
+          open={isUploadPopupOpen}
+          onClose={handleCloseUploadPopup}
+          folders={folders}
         />
       </Paper>
     );
@@ -317,6 +350,9 @@ const FileItem = ({ item, viewMode, onClick }) => {
           onMoveTo={handleMoveTo}
           onDownload={handleDownload}
           onUploadTo={handleUploadTo}
+          position={contextMenuPosition}
+          isRightClick={isRightClick}
+          isTrash={isTrash}
         />
 
         {/* Dialogs */}
@@ -334,6 +370,13 @@ const FileItem = ({ item, viewMode, onClick }) => {
           onMove={handleMoveSubmit}
           itemName={item.name}
           itemType={item.type}
+        />
+
+        {/* File Upload Popup */}
+        <FileUploadPopup
+          open={isUploadPopupOpen}
+          onClose={handleCloseUploadPopup}
+          folders={folders}
         />
       </Box>
     );

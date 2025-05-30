@@ -68,6 +68,7 @@ const TrashPage = () => {
         items={trashItems}
         showViewToggle={true}
         defaultViewMode="list"
+        isTrash={true}
       />
     </Box>
   );

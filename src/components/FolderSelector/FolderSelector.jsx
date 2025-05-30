@@ -6,11 +6,12 @@ import {
 } from '@mui/material';
 import { 
   Folder as FolderIcon,
-  ArrowDropDown as ArrowDropDownIcon 
+  ArrowDropDown as ArrowDropDownIcon,
+  Home as HomeIcon
 } from '@mui/icons-material';
 import FolderSelectorPopup from './FolderSelectorPopup';
 
-const FolderSelector = ({ selectedFolder, onChange }) => {
+const FolderSelector = ({ selectedFolder, onChange, currentFolder }) => {
   const theme = useTheme();
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
@@ -26,12 +27,33 @@ const FolderSelector = ({ selectedFolder, onChange }) => {
     onChange(folder);
   };
 
+  // Use currentFolder as the initialSelectedFolder if provided and selectedFolder is not set
+  const initialFolder = selectedFolder || currentFolder;
+
+  // Function to get the display text for the button
+  const getButtonText = () => {
+    if (!initialFolder) return 'Select Folder';
+
+    // Special case for root folder (id is null)
+    if (initialFolder.id === null) return 'Home Directory';
+
+    return initialFolder.name;
+  };
+
+  // Function to get the icon for the button
+  const getButtonIcon = () => {
+    if (initialFolder && initialFolder.id === null) {
+      return <HomeIcon />;
+    }
+    return <FolderIcon />;
+  };
+
   return (
     <>
       <Button
         variant="outlined"
         onClick={handleOpenPopup}
-        startIcon={<FolderIcon />}
+        startIcon={getButtonIcon()}
         endIcon={<ArrowDropDownIcon />}
         sx={{
           textTransform: 'none',
@@ -46,14 +68,16 @@ const FolderSelector = ({ selectedFolder, onChange }) => {
           minHeight: 40
         }}
       >
-        {selectedFolder ? selectedFolder.name : 'Select Folder'}
+        {getButtonText()}
       </Button>
 
       <FolderSelectorPopup
         open={isPopupOpen}
         onClose={handleClosePopup}
         onSelect={handleSelectFolder}
-        initialSelectedFolder={selectedFolder ? selectedFolder.id.toString() : null}
+        initialSelectedFolder={initialFolder ? 
+          initialFolder.id === null ? 'root' : initialFolder.id.toString() 
+          : null}
       />
     </>
   );
