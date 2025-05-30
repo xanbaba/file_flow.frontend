@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Typography, Paper, Chip, IconButton, useTheme } from '@mui/material';
+import { Box, Typography, Paper, IconButton, useTheme } from '@mui/material';
 import {
   Folder as FolderIcon,
   Description as FileIcon,

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Box, Typography, Paper, Grid, Divider, useTheme, Link } from '@mui/material';
+import { Box, Typography, Paper, Divider, useTheme, Link } from '@mui/material';
 import { NavigateNext as NavigateNextIcon } from '@mui/icons-material';
 import FileItem from './FileItem';
 import ViewToggle from './ViewToggle';
-import { useFileSystem } from '../../contexts/FileSystemContext';
+
+import {useFileSystem} from "../../contexts/UseFileSystem.jsx";
 
 const FileExplorer = ({ 
   title, 

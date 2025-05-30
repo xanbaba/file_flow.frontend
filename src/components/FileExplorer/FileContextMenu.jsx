@@ -41,16 +41,18 @@ const FileContextMenu = ({
           open={open}
           onClose={onClose}
           onClick={onClose}
-          PaperProps={{
-            elevation: 0,
-            sx: {
-              overflow: 'visible',
-              filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.08))',
-              mt: 1.5,
-              borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
-              minWidth: 180,
-            },
+          slotProps={{
+            paper: {
+              elevation: 0,
+              sx: {
+                overflow: 'visible',
+                filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.08))',
+                mt: 1.5,
+                borderRadius: '12px',
+                border: '1px solid rgba(0, 0, 0, 0.06)',
+                minWidth: 180,
+              }
+            }
           }}
           transformOrigin={{horizontal: 'right', vertical: 'top'}}
           anchorOrigin={{horizontal: 'right', vertical: 'bottom'}}

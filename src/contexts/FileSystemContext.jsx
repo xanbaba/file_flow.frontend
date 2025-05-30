@@ -1,25 +1,15 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { 
-  fetchFolderChildren, 
-  fetchFolder, 
-  createFolder,
-  ConflictError,
-  NotFoundError,
+import React, {createContext, useCallback, useState} from 'react';
+import {
   BadRequestError,
+  createFolder,
+  fetchFolder,
+  fetchFolderChildren,
+  NotFoundError,
   UnauthorizedError
 } from '../services/api';
 
 // Create the context
 const FileSystemContext = createContext();
-
-// Custom hook to use the file system context
-export const useFileSystem = () => {
-  const context = useContext(FileSystemContext);
-  if (!context) {
-    throw new Error('useFileSystem must be used within a FileSystemProvider');
-  }
-  return context;
-};
 
 // Provider component
 export const FileSystemProvider = ({ children }) => {
@@ -172,7 +162,7 @@ export const FileSystemProvider = ({ children }) => {
     setTimeout(() => {
       fetchFolderContents(folderId);
     }, 0);
-  }, [fetchFolderContents]);
+  }, [currentFolderId, fetchFolderContents]);
 
   // Value object to be provided to consumers
   const value = {

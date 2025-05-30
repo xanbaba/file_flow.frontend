@@ -1,6 +1,7 @@
 // API service for handling backend communication
+// noinspection ExceptionCaughtLocallyJS
 
-import { apiConfig } from '../config';
+import {apiConfig} from '../config';
 
 // We'll use a token provider pattern to get the token from Auth0
 let tokenProvider = null;
@@ -114,7 +115,7 @@ export const fetchWithRetry = async (url, options, maxRetries = 3, initialDelay 
         // Try to parse error response as JSON
         try {
           errorData = await response.json();
-        } catch (e) {
+        } catch {
           // If parsing fails, continue with null errorData
         }
 
@@ -164,16 +165,15 @@ export const fetchWithRetry = async (url, options, maxRetries = 3, initialDelay 
  */
 export const fetchFolderChildren = async (folderId = 'root') => {
   try {
-    const data = await fetchWithRetry(
-      `${apiConfig.baseUrl}/api/folders/${folderId}/children`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/folders/${folderId}/children`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
         }
-      }
     );
-    return data;
   } catch (error) {
     console.error('Error fetching folder children:', error);
     throw error;
@@ -187,16 +187,15 @@ export const fetchFolderChildren = async (folderId = 'root') => {
  */
 export const fetchFolder = async (folderId) => {
   try {
-    const data = await fetchWithRetry(
-      `${apiConfig.baseUrl}/api/folders/${folderId}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/folders/${folderId}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
         }
-      }
     );
-    return data;
   } catch (error) {
     console.error('Error fetching folder:', error);
     throw error;
@@ -211,20 +210,19 @@ export const fetchFolder = async (folderId) => {
  */
 export const createFolder = async (folderName, targetFolderId = null) => {
   try {
-    const data = await fetchWithRetry(
-      `${apiConfig.baseUrl}/api/folders`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          folderName,
-          targetFolderId
-        })
-      }
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/folders`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            folderName,
+            targetFolderId
+          })
+        }
     );
-    return data;
   } catch (error) {
     console.error('Error creating folder:', error);
     throw error;

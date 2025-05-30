@@ -1,5 +1,5 @@
 import React from 'react';
-import {Box, Typography, Button, useTheme} from '@mui/material';
+import {Box, Typography, useTheme} from '@mui/material';
 import {
   AccessTime as AccessTimeIcon
 } from '@mui/icons-material';

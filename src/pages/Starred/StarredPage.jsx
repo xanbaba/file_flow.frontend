@@ -1,5 +1,5 @@
 import React from 'react';
-import {Box, Typography, Button, useTheme} from '@mui/material';
+import {Box, Typography, useTheme} from '@mui/material';
 import {
   Star as StarIcon
 } from '@mui/icons-material';

@@ -109,7 +109,7 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
         }
 
         // Check in all fetched folders
-        for (const [parentId, children] of Object.entries(folders)) {
+        for (const [children] of Object.entries(folders)) {
           folder = children.find(f => f.id.toString() === selectedFolder);
           if (folder) {
             return folder;
@@ -144,7 +144,7 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
   };
 
   // Custom folder tree component
-  const FolderTree = ({ folderList, level = 0, parentId = null }) => {
+  const FolderTree = ({ level = 0, parentId = null }) => {
     // If we're showing root folders
     const foldersToShow = parentId === null ? rootFolders : folders[parentId] || [];
     const isLoading = parentId === null ? isRootLoading : loadingFolders[parentId];
@@ -224,8 +224,7 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
           </Box>
         )}
         {foldersToShow.map((folder) => {
-          const folderId = folder.id.toString();
-          const hasChildren = folders[folderId] ? folders[folderId].length > 0 : true; // Assume folders might have children until we check
+          const folderId = folder.id.toString();// Assume folders might have children until we check
           const isOpen = openFolders[folderId];
 
           return (
@@ -249,10 +248,12 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
                   <FolderIcon sx={{ color: theme.palette.custom.beige }} />
                 </ListItemIcon>
                 <ListItemText 
-                  primary={folder.name} 
-                  primaryTypographyProps={{ 
-                    variant: 'body2',
-                    fontWeight: selectedFolder === folderId ? 600 : 400
+                  primary={folder.name}
+                  slotProps={{
+                    primary: {
+                      variant: 'body2',
+                      fontWeight: selectedFolder === folderId ? 600 : 400
+                    }
                   }}
                 />
                 <IconButton 
@@ -286,15 +287,17 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: '16px',
-          overflow: 'hidden',
-          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
-          height: '60vh',
-          maxHeight: '500px',
-          width: '90%',
-          maxWidth: '500px'
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: '16px',
+            overflow: 'hidden',
+            boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
+            height: '60vh',
+            maxHeight: '500px',
+            width: '90%',
+            maxWidth: '500px'
+          }
         }
       }}
     >

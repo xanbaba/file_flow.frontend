@@ -17,7 +17,8 @@ import {
   CreateNewFolder as CreateNewFolderIcon
 } from '@mui/icons-material';
 import FolderSelector from '../FolderSelector/FolderSelector';
-import { useFileSystem } from '../../contexts/FileSystemContext';
+
+import {useFileSystem} from "../../contexts/UseFileSystem.jsx";
 
 const NewFolderPopup = ({ open, onClose, onCreateFolder }) => {
   const { currentFolder } = useFileSystem();
@@ -97,15 +98,17 @@ const NewFolderPopup = ({ open, onClose, onCreateFolder }) => {
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: '16px',
-          overflow: 'hidden',
-          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
-          height: '60vh',
-          maxHeight: '500px',
-          width: '90%',
-          maxWidth: '500px'
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: '16px',
+            overflow: 'hidden',
+            boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
+            height: '60vh',
+            maxHeight: '500px',
+            width: '90%',
+            maxWidth: '500px'
+          }
         }
       }}
     >

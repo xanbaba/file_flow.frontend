@@ -31,11 +31,11 @@ import {
   CreateNewFolder as CreateNewFolderIcon
 } from '@mui/icons-material';
 import { useThemeContext } from '../contexts/ThemeContext';
-import { useFileSystem } from '../contexts/FileSystemContext';
 import UserProfilePopup from '../components/UserProfilePopup/UserProfilePopup';
 import NotificationPanel from '../components/NotificationPanel/NotificationPanel';
 import FileUploadPopup from '../components/FileUploadPopup/FileUploadPopup';
 import NewFolderPopup from '../components/NewFolderPopup';
+import {useFileSystem} from "../contexts/UseFileSystem.jsx";
 
 const Header = () => {
   const theme = useTheme();
@@ -280,21 +280,23 @@ const Header = () => {
               open={open}
               onClose={handleClose}
               onClick={handleClose}
-              PaperProps={{
-                elevation: 0,
-                sx: {
-                  overflow: 'visible',
-                  filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.08))',
-                  mt: 1.5,
-                  borderRadius: '12px',
-                  border: '1px solid rgba(0, 0, 0, 0.06)',
-                  '& .MuiAvatar-root': {
-                    width: 32,
-                    height: 32,
-                    ml: -0.5,
-                    mr: 1,
-                  },
-                },
+              slotProps={{
+                paper: {
+                  elevation: 0,
+                  sx: {
+                    overflow: 'visible',
+                    filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.08))',
+                    mt: 1.5,
+                    borderRadius: '12px',
+                    border: '1px solid rgba(0, 0, 0, 0.06)',
+                    '& .MuiAvatar-root': {
+                      width: 32,
+                      height: 32,
+                      ml: -0.5,
+                      mr: 1,
+                    },
+                  }
+                }
               }}
               transformOrigin={{horizontal: 'right', vertical: 'top'}}
               anchorOrigin={{horizontal: 'right', vertical: 'bottom'}}
