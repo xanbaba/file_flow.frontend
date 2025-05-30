@@ -35,7 +35,7 @@ import UserProfilePopup from '../components/UserProfilePopup/UserProfilePopup';
 import NotificationPanel from '../components/NotificationPanel/NotificationPanel';
 import FileUploadPopup from '../components/FileUploadPopup/FileUploadPopup';
 import NewFolderPopup from '../components/NewFolderPopup';
-import {useFileSystem} from "../contexts/UseFileSystem.jsx";
+import {useFileSystem} from "../contexts/FileSystemContext.jsx";
 
 const Header = () => {
   const theme = useTheme();

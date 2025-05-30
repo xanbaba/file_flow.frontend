@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import FileExplorer from '../../components/FileExplorer/FileExplorer';
 import BreadcrumbNavigation from '../../components/FileExplorer/BreadcrumbNavigation';
 
-import {useFileSystem} from "../../contexts/UseFileSystem.jsx";
+import {useFileSystem} from "../../contexts/FileSystemContext.jsx";
 
 const HomePage = () => {
   const theme = useTheme();

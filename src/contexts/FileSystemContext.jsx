@@ -1,4 +1,4 @@
-import React, {createContext, useCallback, useState} from 'react';
+import React, {createContext, useCallback, useContext, useState} from 'react';
 import {
   BadRequestError,
   createFolder,
@@ -10,6 +10,15 @@ import {
 
 // Create the context
 const FileSystemContext = createContext();
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const useFileSystem = () => {
+  const context = useContext(FileSystemContext);
+  if (!context) {
+    throw new Error('useFileSystem must be used within a FileSystemProvider');
+  }
+  return context;
+};
 
 // Provider component
 export const FileSystemProvider = ({ children }) => {

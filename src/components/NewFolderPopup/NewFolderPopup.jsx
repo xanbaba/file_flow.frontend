@@ -18,7 +18,7 @@ import {
 } from '@mui/icons-material';
 import FolderSelector from '../FolderSelector/FolderSelector';
 
-import {useFileSystem} from "../../contexts/UseFileSystem.jsx";
+import {useFileSystem} from "../../contexts/FileSystemContext.jsx";
 
 const NewFolderPopup = ({ open, onClose, onCreateFolder }) => {
   const { currentFolder } = useFileSystem();

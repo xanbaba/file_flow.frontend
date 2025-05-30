@@ -4,7 +4,7 @@ import { NavigateNext as NavigateNextIcon } from '@mui/icons-material';
 import FileItem from './FileItem';
 import ViewToggle from './ViewToggle';
 
-import {useFileSystem} from "../../contexts/UseFileSystem.jsx";
+import {useFileSystem} from "../../contexts/FileSystemContext.jsx";
 
 const FileExplorer = ({ 
   title, 
