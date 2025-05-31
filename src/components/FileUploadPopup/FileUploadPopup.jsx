@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -27,6 +27,35 @@ const FileUploadPopup = ({ open, onClose, folders }) => {
   const theme = useTheme();
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
+  const dialogRef = useRef(null);
+
+  // Use effect to stop propagation of all events from the dialog
+  useEffect(() => {
+    const dialogElement = dialogRef.current;
+
+    // Function to stop event propagation
+    const stopPropagation = (e) => {
+      e.stopPropagation();
+    };
+
+    if (dialogElement && open) {
+      // Add event listeners to stop propagation
+      dialogElement.addEventListener('click', stopPropagation, true);
+      dialogElement.addEventListener('mousedown', stopPropagation, true);
+      dialogElement.addEventListener('mouseup', stopPropagation, true);
+      dialogElement.addEventListener('dblclick', stopPropagation, true);
+    }
+
+    // Cleanup function
+    return () => {
+      if (dialogElement) {
+        dialogElement.removeEventListener('click', stopPropagation, true);
+        dialogElement.removeEventListener('mousedown', stopPropagation, true);
+        dialogElement.removeEventListener('mouseup', stopPropagation, true);
+        dialogElement.removeEventListener('dblclick', stopPropagation, true);
+      }
+    };
+  }, [open]);
 
   // Handle file drop
   const onDrop = useCallback(acceptedFiles => {
@@ -88,10 +117,13 @@ const FileUploadPopup = ({ open, onClose, folders }) => {
 
   return (
     <Dialog 
+      ref={dialogRef}
       open={open} 
       onClose={onClose}
       maxWidth="md"
       fullWidth
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
       PaperProps={{
         sx: {
           borderRadius: '16px',
@@ -101,7 +133,8 @@ const FileUploadPopup = ({ open, onClose, folders }) => {
           maxHeight: '700px',
           width: '90%',
           maxWidth: '1000px'
-        }
+        },
+        onClick: (e) => e.stopPropagation()
       }}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>

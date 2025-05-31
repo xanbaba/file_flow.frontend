@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useCallback} from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import {
   AppBar,
@@ -48,16 +48,9 @@ const Header = () => {
   const [initialSection, setInitialSection] = useState('profile');
   const [isUploadPopupOpen, setIsUploadPopupOpen] = useState(false);
   const [isNewFolderPopupOpen, setIsNewFolderPopupOpen] = useState(false);
+  const [folders, setFolders] = useState([]);
   const open = Boolean(anchorEl);
   const notificationOpen = Boolean(notificationAnchorEl);
-
-  // Extract folders from folderContents for the upload popup
-  const folders = folderContents
-    .filter(item => item.type === 'folder')
-    .map(folder => ({
-      id: folder.id,
-      name: folder.name
-    }));
 
   const handleNotificationClick = (event) => {
     setNotificationAnchorEl(event.currentTarget);
@@ -82,6 +75,14 @@ const Header = () => {
   };
 
   const handleOpenUploadPopup = () => {
+    // Use folderContents from the top-level hook
+    const currentFolders = folderContents
+      .filter(item => item.type === 'folder')
+      .map(folder => ({
+        id: folder.id,
+        name: folder.name
+      }));
+    setFolders(currentFolders);
     setIsUploadPopupOpen(true);
   };
 

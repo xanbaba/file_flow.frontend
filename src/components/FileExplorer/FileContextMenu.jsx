@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Menu,
   MenuItem,
@@ -34,13 +34,52 @@ const FileContextMenu = ({
                            isTrash = false
                          }) => {
   const theme = useTheme();
+  const menuRef = useRef(null);
+
+  // Use effect to stop propagation of all events from the menu
+  useEffect(() => {
+    const menuElement = menuRef.current;
+
+    // Function to stop event propagation
+    const stopPropagation = (e) => {
+      e.stopPropagation();
+    };
+
+    if (menuElement && open) {
+      // Add event listeners to stop propagation
+      menuElement.addEventListener('click', stopPropagation, true);
+      menuElement.addEventListener('mousedown', stopPropagation, true);
+      menuElement.addEventListener('mouseup', stopPropagation, true);
+      menuElement.addEventListener('dblclick', stopPropagation, true);
+    }
+
+    // Cleanup function
+    return () => {
+      if (menuElement) {
+        menuElement.removeEventListener('click', stopPropagation, true);
+        menuElement.removeEventListener('mousedown', stopPropagation, true);
+        menuElement.removeEventListener('mouseup', stopPropagation, true);
+        menuElement.removeEventListener('dblclick', stopPropagation, true);
+      }
+    };
+  }, [open]);
+
+  // Handler to prevent click propagation when closing the menu
+  const handleClose = (event) => {
+    // If event exists (i.e., this is a real click event, not a programmatic close)
+    if (event) {
+      event.stopPropagation();
+    }
+    onClose();
+  };
 
   return (
       <Menu
+          ref={menuRef}
           anchorEl={anchorEl}
           open={open}
-          onClose={onClose}
-          onClick={onClose}
+          onClose={handleClose}
+          onClick={handleClose}
           slotProps={{
             paper: {
               elevation: 0,
@@ -51,7 +90,9 @@ const FileContextMenu = ({
                 borderRadius: '12px',
                 border: '1px solid rgba(0, 0, 0, 0.06)',
                 minWidth: 180,
-              }
+              },
+              // Add onClick handler to stop propagation at the paper level
+              onClick: (e) => e.stopPropagation()
             }
           }}
           transformOrigin={{horizontal: 'right', vertical: 'top'}}
@@ -114,7 +155,7 @@ const FileContextMenu = ({
                 <ListItemIcon>
                   <DeleteIcon fontSize="small" sx={{color: theme.palette.error.main}}/>
                 </ListItemIcon>
-                <ListItemText>{'Delete'}</ListItemText>
+                <ListItemText>{'Move to Trash'}</ListItemText>
               </MenuItem>,
 
               <MenuItem

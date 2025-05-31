@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Box, Typography, Paper, Divider, useTheme, Link } from '@mui/material';
 import { NavigateNext as NavigateNextIcon } from '@mui/icons-material';
 import FileItem from './FileItem';
@@ -20,7 +20,9 @@ const FileExplorer = ({
   const theme = useTheme();
   const [viewMode, setViewMode] = useState(defaultViewMode);
 
-  const displayItems = maxItems ? items.slice(0, maxItems) : items;
+  const displayItems = useMemo(() => {
+    return maxItems ? items.slice(0, maxItems) : items;
+  }, [items, maxItems]);
 
   const handleViewModeChange = (mode) => {
     setViewMode(mode);
@@ -29,7 +31,6 @@ const FileExplorer = ({
   const { navigateToFolder } = useFileSystem();
 
   const handleItemClick = (item) => {
-    console.log('Item clicked:', item);
     // Navigate to folder if the item is a folder
     if (item.type === 'folder') {
       navigateToFolder(item.id);
@@ -163,4 +164,4 @@ const FileExplorer = ({
   );
 };
 
-export default FileExplorer;
+export default React.memo(FileExplorer);

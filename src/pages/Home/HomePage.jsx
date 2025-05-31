@@ -1,15 +1,16 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {Box, Typography, useTheme, CircularProgress} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import FileExplorer from '../../components/FileExplorer/FileExplorer';
 import BreadcrumbNavigation from '../../components/FileExplorer/BreadcrumbNavigation';
 
 import {useFileSystem} from "../../contexts/FileSystemContext.jsx";
+import {useAuthToken} from "../../components/Auth/AuthTokenProvider";
 
 const HomePage = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-
+  console.log("home page loading")
   const { 
     folderContents, 
     loading, 
@@ -17,15 +18,30 @@ const HomePage = () => {
     refreshCurrentFolder,
     currentFolderId
   } = useFileSystem();
+  const { isTokenReady } = useAuthToken();
 
-  // Fetch folder contents when the component mounts
+  // Use a ref to track if this is the initial mount
+  const isInitialMount = useRef(true);
+
+  // Fetch folder contents only when the component initially mounts or when returning to root
+  // and when the token is ready
   useEffect(() => {
-    refreshCurrentFolder();
-  }, [refreshCurrentFolder]);
+    // Only fetch on initial mount or when explicitly navigating to root
+    // and only if the token is ready
+    if (isTokenReady && isInitialMount.current) {
+      isInitialMount.current = false;
+      refreshCurrentFolder();
+    } else if (isTokenReady && currentFolderId === 'root') {
+      // We're already at root, no need to fetch again unless explicitly navigated here
+      // The navigation to root will already trigger the fetch via navigateToFolder
+    }
+  }, [refreshCurrentFolder, currentFolderId, isTokenReady]);
 
   // For recent items, we'll use the first 5 items from folderContents for now
   // In a real app, you would fetch recent items from a separate API endpoint
-  const recentItems = folderContents.slice(0, 5);
+  const recentItems = useMemo(() => {
+    return folderContents.slice(0, 5);
+  }, [folderContents]);
 
   const handleShowMoreRecent = () => {
     navigate('/recent');
@@ -88,4 +104,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage;
+export default React.memo(HomePage);

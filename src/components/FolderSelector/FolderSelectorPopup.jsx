@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -34,6 +34,35 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
   const [rootFolders, setRootFolders] = useState([]);
   const [isRootLoading, setIsRootLoading] = useState(false);
   const [error, setError] = useState(null);
+  const dialogRef = useRef(null);
+
+  // Use effect to stop propagation of all events from the dialog
+  useEffect(() => {
+    const dialogElement = dialogRef.current;
+
+    // Function to stop event propagation
+    const stopPropagation = (e) => {
+      e.stopPropagation();
+    };
+
+    if (dialogElement && open) {
+      // Add event listeners to stop propagation
+      dialogElement.addEventListener('click', stopPropagation, true);
+      dialogElement.addEventListener('mousedown', stopPropagation, true);
+      dialogElement.addEventListener('mouseup', stopPropagation, true);
+      dialogElement.addEventListener('dblclick', stopPropagation, true);
+    }
+
+    // Cleanup function
+    return () => {
+      if (dialogElement) {
+        dialogElement.removeEventListener('click', stopPropagation, true);
+        dialogElement.removeEventListener('mousedown', stopPropagation, true);
+        dialogElement.removeEventListener('mouseup', stopPropagation, true);
+        dialogElement.removeEventListener('dblclick', stopPropagation, true);
+      }
+    };
+  }, [open]);
 
   // Fetch root folders when component mounts or popup opens
   useEffect(() => {
@@ -283,10 +312,13 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
 
   return (
     <Dialog 
+      ref={dialogRef}
       open={open} 
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
       slotProps={{
         paper: {
           sx: {
@@ -297,7 +329,8 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
             maxHeight: '500px',
             width: '90%',
             maxWidth: '500px'
-          }
+          },
+          onClick: (e) => e.stopPropagation()
         }
       }}
     >

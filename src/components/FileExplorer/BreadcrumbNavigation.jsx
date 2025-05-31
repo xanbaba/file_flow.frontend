@@ -16,7 +16,7 @@ const BreadcrumbNavigation = () => {
       >
         {folderPath.map((folder, index) => {
           const isLast = index === folderPath.length - 1;
-          
+
           return isLast ? (
             <Typography 
               key={folder.id} 
@@ -52,4 +52,4 @@ const BreadcrumbNavigation = () => {
   );
 };
 
-export default BreadcrumbNavigation;
+export default React.memo(BreadcrumbNavigation);

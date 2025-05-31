@@ -1,4 +1,4 @@
-import React, {createContext, useCallback, useContext, useState} from 'react';
+import React, {createContext, useCallback, useContext, useState, useMemo} from 'react';
 import {
   BadRequestError,
   createFolder,
@@ -87,8 +87,9 @@ export const FileSystemProvider = ({ children }) => {
         const targetFolder = prev[index];
         // Truncate the path to this index
         const newPath = prev.slice(0, index + 1);
-        // Schedule the folder contents fetch
-        setTimeout(() => fetchFolderContents(targetFolder.id), 0);
+        // Directly fetch folder contents without setTimeout
+        // This avoids potential duplicate calls and race conditions
+        fetchFolderContents(targetFolder.id);
         return newPath;
       }
       return prev;
@@ -103,10 +104,9 @@ export const FileSystemProvider = ({ children }) => {
       const folderId = targetFolderId || currentFolderId;
       const newFolder = await createFolder(folderName, folderId === 'root' ? null : folderId);
 
-      // Refresh the current folder contents after a short delay to ensure state updates have completed
-      setTimeout(() => {
-        fetchFolderContents(currentFolderId);
-      }, 0);
+      // Directly refresh the current folder contents
+      // This avoids potential duplicate calls and race conditions
+      fetchFolderContents(currentFolderId);
 
       return newFolder;
     } catch (err) {
@@ -167,14 +167,13 @@ export const FileSystemProvider = ({ children }) => {
 
   // Define refreshCurrentFolder with useCallback to ensure stability
   const refreshCurrentFolder = useCallback(() => {
-    const folderId = currentFolderId;
-    setTimeout(() => {
-      fetchFolderContents(folderId);
-    }, 0);
+    // Directly fetch folder contents without setTimeout
+    // This avoids potential duplicate calls and race conditions
+    fetchFolderContents(currentFolderId);
   }, [currentFolderId, fetchFolderContents]);
 
   // Value object to be provided to consumers
-  const value = {
+  const value = useMemo(() => ({
     currentFolderId,
     currentFolder,
     folderContents: formatItems(folderContents),
@@ -185,7 +184,19 @@ export const FileSystemProvider = ({ children }) => {
     navigateToPathIndex,
     createFolder: handleCreateFolder,
     refreshCurrentFolder
-  };
+  }), [
+    currentFolderId,
+    currentFolder,
+    folderContents,
+    folderPath,
+    loading,
+    error,
+    navigateToFolder,
+    navigateToPathIndex,
+    handleCreateFolder,
+    refreshCurrentFolder,
+    formatItems
+  ]);
 
   return (
     <FileSystemContext.Provider value={value}>
