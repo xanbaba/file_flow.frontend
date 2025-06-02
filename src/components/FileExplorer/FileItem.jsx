@@ -11,10 +11,28 @@ import FileContextMenu from './FileContextMenu';
 import RenameDialog from './RenameDialog';
 import MoveToDialog from './MoveToDialog';
 import FileUploadPopup from '../FileUploadPopup/FileUploadPopup';
+import ConfirmationPopup from '../ConfirmationPopup/ConfirmationPopup';
+import { 
+  renameFile, 
+  renameFolder, 
+  moveItem, 
+  moveFileToTrash, 
+  moveFolderToTrash, 
+  starItem, 
+  unstarItem,
+  permanentDeleteFile,
+  permanentDeleteFolder,
+  restoreFile,
+  restoreFolder
+} from '../../services/api';
+import { useFileSystem } from '../../contexts/FileSystemContext';
+import { useAuthToken } from '../Auth/AuthTokenProvider';
 
 const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
   const theme = useTheme();
-  const [isStarred, setIsStarred] = useState(item.starred || false);
+  const { refreshCurrentFolder } = useFileSystem();
+  const { isTokenReady } = useAuthToken();
+  const [isStarred, setIsStarred] = useState(item.isStarred || false);
   const [isHovered, setIsHovered] = useState(false);
 
   // Context menu state
@@ -27,6 +45,8 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [isUploadPopupOpen, setIsUploadPopupOpen] = useState(false);
+  const [permanentDeleteConfirmOpen, setPermanentDeleteConfirmOpen] = useState(false);
+  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
 
   // Mock data for folders (in a real app, this would come from props or a context)
   const folders = [
@@ -36,10 +56,39 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
     { id: 7, name: 'Financial Report' }
   ];
 
-  const handleStarClick = (e) => {
+  const handleStarClick = async (e) => {
     e.stopPropagation();
-    setIsStarred(!isStarred);
-    // Here you would typically call a function to update the starred status in your data store
+
+    if (!isTokenReady) {
+      console.warn('Authentication token not ready. Cannot update star status.');
+      return;
+    }
+
+    try {
+      if (isStarred) {
+        // If currently starred, unstar it
+        await unstarItem(item.id);
+        console.log(`Successfully unstarred ${item.name}`);
+      } else {
+        // If not starred, star it
+        await starItem(item.id);
+        console.log(`Successfully starred ${item.name}`);
+      }
+
+      // Update local state after successful API call
+      setIsStarred(!isStarred);
+
+      // Refresh the folder contents to reflect the changes
+      refreshCurrentFolder();
+
+      // Dispatch custom event for item starred/unstarred
+      window.dispatchEvent(new CustomEvent('itemStarredStatusChanged', {
+        detail: { itemId: item.id, isStarred: !isStarred }
+      }));
+    } catch (error) {
+      console.error(`Error updating star status for ${item.name}:`, error);
+      // Here you would typically show an error message to the user
+    }
   };
 
   const handleContextMenu = (event) => {
@@ -68,23 +117,97 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
     setRenameDialogOpen(true);
   };
 
-  const handleRenameSubmit = (newName) => {
-    console.log(`Renaming ${item.name} to ${newName}`);
-    // Here you would typically call a function to update the name in your data store
+  const handleRenameSubmit = async (newName) => {
+    if (!isTokenReady) {
+      console.warn('Authentication token not ready. Cannot rename item.');
+      return;
+    }
+
+    try {
+      if (item.type === 'folder') {
+        await renameFolder(item.id, newName);
+        // Dispatch custom event for folder renamed
+        window.dispatchEvent(new CustomEvent('folderRenamed'));
+      } else {
+        await renameFile(item.id, newName);
+        // Dispatch custom event for file renamed
+        window.dispatchEvent(new CustomEvent('fileRenamed'));
+      }
+      console.log(`Successfully renamed ${item.name} to ${newName}`);
+      // Refresh the folder contents to reflect the changes
+      refreshCurrentFolder();
+    } catch (error) {
+      console.error(`Error renaming ${item.type}:`, error);
+      // Here you would typically show an error message to the user
+    }
   };
 
-  const handleMoveToTrash = () => {
-    console.log(`Moving ${item.name} to trash`);
-    // Here you would typically call a function to move the item to trash in your data store
+  const handleMoveToTrash = async () => {
+    if (!isTokenReady) {
+      console.warn('Authentication token not ready. Cannot move item to trash.');
+      return;
+    }
+
+    try {
+      if (item.type === 'folder') {
+        await moveFolderToTrash(item.id);
+        // Dispatch custom event for folder deleted (moved to trash)
+        window.dispatchEvent(new CustomEvent('folderDeleted'));
+      } else {
+        await moveFileToTrash(item.id);
+        // Dispatch custom event for file deleted (moved to trash)
+        window.dispatchEvent(new CustomEvent('fileDeleted'));
+      }
+      console.log(`Successfully moved ${item.name} to trash`);
+      // Refresh the folder contents to reflect the changes
+      refreshCurrentFolder();
+    } catch (error) {
+      console.error(`Error moving ${item.type} to trash:`, error);
+      // Here you would typically show an error message to the user
+    }
   };
 
   const handleMoveTo = () => {
     setMoveDialogOpen(true);
   };
 
-  const handleMoveSubmit = (folderId) => {
-    console.log(`Moving ${item.name} to folder with ID ${folderId}`);
-    // Here you would typically call a function to move the item to the selected folder in your data store
+  const handleMoveSubmit = async (folderId, setError) => {
+    if (!isTokenReady) {
+      console.warn('Authentication token not ready. Cannot move item.');
+      if (setError) {
+        setError('Authentication token not ready. Please try again later.');
+      }
+      return;
+    }
+
+    try {
+      await moveItem(item.id, folderId);
+      // Dispatch custom event for item moved
+      if (item.type === 'folder') {
+        window.dispatchEvent(new CustomEvent('folderMoved'));
+      } else {
+        window.dispatchEvent(new CustomEvent('fileMoved'));
+      }
+      console.log(`Successfully moved ${item.name} to folder with ID ${folderId}`);
+      // Refresh the folder contents to reflect the changes
+      refreshCurrentFolder();
+      // Clear any previous error
+      if (setError) {
+        setError(null);
+      }
+      // Close the dialog
+      setMoveDialogOpen(false);
+    } catch (error) {
+      console.error(`Error moving ${item.type}:`, error);
+      // Show error message to the user
+      if (setError) {
+        if (error.name === 'BadRequestError') {
+          setError(error.message || `Cannot move ${item.type} to this location.`);
+        } else {
+          setError(`Error moving ${item.type}. Please try again.`);
+        }
+      }
+    }
   };
 
   const handleDownload = () => {
@@ -100,6 +223,64 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
 
   const handleCloseUploadPopup = () => {
     setIsUploadPopupOpen(false);
+  };
+
+  const handlePermanentDelete = () => {
+    setPermanentDeleteConfirmOpen(true);
+  };
+
+  const handlePermanentDeleteConfirm = async () => {
+    if (!isTokenReady) {
+      console.warn('Authentication token not ready. Cannot permanently delete item.');
+      return;
+    }
+
+    try {
+      if (item.type === 'folder') {
+        await permanentDeleteFolder(item.id);
+        // Dispatch custom event for folder permanently deleted
+        window.dispatchEvent(new CustomEvent('folderPermanentlyDeleted'));
+      } else {
+        await permanentDeleteFile(item.id);
+        // Dispatch custom event for file permanently deleted
+        window.dispatchEvent(new CustomEvent('filePermanentlyDeleted'));
+      }
+      console.log(`Successfully permanently deleted ${item.name}`);
+      // Refresh the folder contents to reflect the changes
+      refreshCurrentFolder();
+    } catch (error) {
+      console.error(`Error permanently deleting ${item.type}:`, error);
+      // Here you would typically show an error message to the user
+    }
+  };
+
+  const handleRestore = () => {
+    setRestoreConfirmOpen(true);
+  };
+
+  const handleRestoreConfirm = async () => {
+    if (!isTokenReady) {
+      console.warn('Authentication token not ready. Cannot restore item.');
+      return;
+    }
+
+    try {
+      if (item.type === 'folder') {
+        await restoreFolder(item.id);
+        // Dispatch custom event for folder restored
+        window.dispatchEvent(new CustomEvent('folderRestored'));
+      } else {
+        await restoreFile(item.id);
+        // Dispatch custom event for file restored
+        window.dispatchEvent(new CustomEvent('fileRestored'));
+      }
+      console.log(`Successfully restored ${item.name}`);
+      // Refresh the folder contents to reflect the changes
+      refreshCurrentFolder();
+    } catch (error) {
+      console.error(`Error restoring ${item.type}:`, error);
+      // Here you would typically show an error message to the user
+    }
   };
 
   if (viewMode === 'grid') {
@@ -222,6 +403,8 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
           position={contextMenuPosition}
           isRightClick={isRightClick}
           isTrash={isTrash}
+          OnPermanentDelete={handlePermanentDelete}
+          OnRestore={handleRestore}
         />
 
         {/* Dialogs */}
@@ -246,6 +429,28 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
           open={isUploadPopupOpen}
           onClose={handleCloseUploadPopup}
           folders={folders}
+        />
+
+        {/* Confirmation Popup for Permanent Delete */}
+        <ConfirmationPopup
+          open={permanentDeleteConfirmOpen}
+          onClose={() => setPermanentDeleteConfirmOpen(false)}
+          onConfirm={handlePermanentDeleteConfirm}
+          title="Permanently Delete"
+          message={`Are you sure you want to permanently delete this ${item.type}? This action cannot be undone.`}
+          confirmButtonText="Delete Permanently"
+          severity="error"
+        />
+
+        {/* Confirmation Popup for Restore */}
+        <ConfirmationPopup
+          open={restoreConfirmOpen}
+          onClose={() => setRestoreConfirmOpen(false)}
+          onConfirm={handleRestoreConfirm}
+          title="Restore from Trash"
+          message={`Are you sure you want to restore this ${item.type} from trash?`}
+          confirmButtonText="Restore"
+          severity="info"
         />
       </Paper>
     );
@@ -353,6 +558,8 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
           position={contextMenuPosition}
           isRightClick={isRightClick}
           isTrash={isTrash}
+          OnPermanentDelete={handlePermanentDelete}
+          OnRestore={handleRestore}
         />
 
         {/* Dialogs */}
@@ -377,6 +584,28 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
           open={isUploadPopupOpen}
           onClose={handleCloseUploadPopup}
           folders={folders}
+        />
+
+        {/* Confirmation Popup for Permanent Delete */}
+        <ConfirmationPopup
+          open={permanentDeleteConfirmOpen}
+          onClose={() => setPermanentDeleteConfirmOpen(false)}
+          onConfirm={handlePermanentDeleteConfirm}
+          title="Permanently Delete"
+          message={`Are you sure you want to permanently delete this ${item.type}? This action cannot be undone.`}
+          confirmButtonText="Delete Permanently"
+          severity="error"
+        />
+
+        {/* Confirmation Popup for Restore */}
+        <ConfirmationPopup
+          open={restoreConfirmOpen}
+          onClose={() => setRestoreConfirmOpen(false)}
+          onConfirm={handleRestoreConfirm}
+          title="Restore from Trash"
+          message={`Are you sure you want to restore this ${item.type} from trash?`}
+          confirmButtonText="Restore"
+          severity="info"
         />
       </Box>
     );

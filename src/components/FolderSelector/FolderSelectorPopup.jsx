@@ -24,9 +24,11 @@ import {
   Home as HomeIcon
 } from '@mui/icons-material';
 import { fetchFolderChildren } from '../../services/api';
+import { useAuthToken } from '../Auth/AuthTokenProvider';
 
-const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder }) => {
+const FolderSelectorPopup = ({ open, onClose, onSelect, onConfirm, initialSelectedFolder, error: externalError }) => {
   const theme = useTheme();
+  const { isTokenReady } = useAuthToken();
   const [selectedFolder, setSelectedFolder] = useState(initialSelectedFolder || null);
   const [openFolders, setOpenFolders] = useState({});
   const [folders, setFolders] = useState({});
@@ -66,7 +68,7 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
 
   // Fetch root folders when component mounts or popup opens
   useEffect(() => {
-    if (open) {
+    if (open && isTokenReady) {
       fetchRootFolders();
 
       // If initialSelectedFolder is 'root', select it
@@ -74,7 +76,7 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
         setSelectedFolder('root');
       }
     }
-  }, [open, initialSelectedFolder]);
+  }, [open, initialSelectedFolder, isTokenReady]);
 
   // Fetch root folders
   const fetchRootFolders = async () => {
@@ -95,8 +97,8 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
 
   // Fetch children of a specific folder
   const fetchFolderChildrenData = async (folderId) => {
-    if (folders[folderId]) {
-      return; // Already fetched
+    if (folders[folderId] || !isTokenReady) {
+      return; // Already fetched or token not ready
     }
 
     setLoadingFolders(prev => ({ ...prev, [folderId]: true }));
@@ -123,8 +125,15 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
           name: 'Home Directory',
           type: 'folder'
         };
-        onSelect(rootFolder);
-        onClose();
+        // Use onConfirm if provided, otherwise fall back to onSelect
+        if (onConfirm) {
+          onConfirm(rootFolder);
+          // Don't close the dialog here, let onConfirm decide whether to close it
+        } else if (onSelect) {
+          onSelect(rootFolder);
+          // If using onSelect (not onConfirm), close the dialog
+          onClose();
+        }
         return;
       }
 
@@ -138,7 +147,7 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
         }
 
         // Check in all fetched folders
-        for (const [children] of Object.entries(folders)) {
+        for (const [_, children] of Object.entries(folders)) {
           folder = children.find(f => f.id.toString() === selectedFolder);
           if (folder) {
             return folder;
@@ -150,8 +159,15 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
 
       const folder = findFolder();
       if (folder) {
-        onSelect(folder);
-        onClose();
+        // Use onConfirm if provided, otherwise fall back to onSelect
+        if (onConfirm) {
+          onConfirm(folder);
+          // Don't close the dialog here, let onConfirm decide whether to close it
+        } else if (onSelect) {
+          onSelect(folder);
+          // If using onSelect (not onConfirm), close the dialog
+          onClose();
+        }
       }
     }
   };
@@ -359,10 +375,10 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, initialSelectedFolder })
             <Typography variant="body2" sx={{ mb: 2 }}>
               Select a folder to store your files:
             </Typography>
-            {error && (
+            {(externalError || error) && (
               <Box sx={{ mb: 2 }}>
                 <Typography variant="body2" color="error">
-                  {error}
+                  {externalError || error}
                 </Typography>
               </Box>
             )}

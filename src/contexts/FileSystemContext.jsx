@@ -7,6 +7,7 @@ import {
   NotFoundError,
   UnauthorizedError
 } from '../services/api';
+import { useAuthToken } from '../components/Auth/AuthTokenProvider';
 
 // Create the context
 const FileSystemContext = createContext();
@@ -22,6 +23,7 @@ export const useFileSystem = () => {
 
 // Provider component
 export const FileSystemProvider = ({ children }) => {
+  const { isTokenReady } = useAuthToken();
   const [currentFolderId, setCurrentFolderId] = useState('root');
   const [currentFolder, setCurrentFolder] = useState(null);
   const [folderContents, setFolderContents] = useState([]);
@@ -31,6 +33,12 @@ export const FileSystemProvider = ({ children }) => {
 
   // Fetch the contents of a folder
   const fetchFolderContents = useCallback(async (folderId = 'root') => {
+    if (!isTokenReady) {
+      console.warn('Authentication token not ready. Cannot fetch folder contents.');
+      setError('Authentication token not ready. Please try again in a moment.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -73,7 +81,7 @@ export const FileSystemProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isTokenReady]);
 
   // Navigate to a folder
   const navigateToFolder = useCallback((folderId) => {
@@ -98,6 +106,11 @@ export const FileSystemProvider = ({ children }) => {
 
   // Create a new folder
   const handleCreateFolder = useCallback(async (folderName, targetFolderId = null) => {
+    if (!isTokenReady) {
+      console.warn('Authentication token not ready. Cannot create folder.');
+      throw new Error('Authentication token not ready. Please try again in a moment.');
+    }
+
     setLoading(true);
     try {
       // Use the provided targetFolderId if available, otherwise use the current folder ID
@@ -117,7 +130,7 @@ export const FileSystemProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [fetchFolderContents, currentFolderId]);
+  }, [fetchFolderContents, currentFolderId, isTokenReady]);
 
   // Format items to match the expected structure in the UI
   const formatItems = useCallback((items) => {

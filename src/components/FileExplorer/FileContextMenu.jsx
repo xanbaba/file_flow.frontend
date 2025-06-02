@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Menu,
   MenuItem,
@@ -15,6 +15,7 @@ import {
   Upload as UploadIcon,
   RestoreFromTrash as RestoreIcon,
 } from '@mui/icons-material';
+import ConfirmationPopup from '../ConfirmationPopup/ConfirmationPopup';
 
 const FileContextMenu = ({
                            anchorEl,
@@ -30,11 +31,11 @@ const FileContextMenu = ({
                            isRightClick,
                            OnPermanentDelete,
                            OnRestore,
-
                            isTrash = false
                          }) => {
   const theme = useTheme();
   const menuRef = useRef(null);
+  const [trashConfirmOpen, setTrashConfirmOpen] = useState(false);
 
   // Use effect to stop propagation of all events from the menu
   useEffect(() => {
@@ -74,137 +75,150 @@ const FileContextMenu = ({
   };
 
   return (
-      <Menu
-          ref={menuRef}
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleClose}
-          onClick={handleClose}
-          slotProps={{
-            paper: {
-              elevation: 0,
-              sx: {
-                overflow: 'visible',
-                filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.08))',
-                mt: 1.5,
-                borderRadius: '12px',
-                border: '1px solid rgba(0, 0, 0, 0.06)',
-                minWidth: 180,
-              },
-              // Add onClick handler to stop propagation at the paper level
-              onClick: (e) => e.stopPropagation()
-            }
-          }}
-          transformOrigin={{horizontal: 'right', vertical: 'top'}}
-          anchorOrigin={{horizontal: 'right', vertical: 'bottom'}}
-          anchorPosition={isRightClick && position ? {top: position.top, left: position.left} : undefined}
-          anchorReference={isRightClick ? 'anchorPosition' : 'anchorEl'}
-      >
-        {isTrash ? (
-            // Only show Delete and Restore options for items in trash
-            [
-              <MenuItem
-                  sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    OnPermanentDelete?.call();
-                  }}
-              >
-                <ListItemIcon>
-                  <DeleteIcon fontSize="small" sx={{color: theme.palette.error.main}}/>
-                </ListItemIcon>
-                <ListItemText>{'Delete'}</ListItemText>
-              </MenuItem>,
-              <MenuItem
-                  sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    OnRestore?.call();
-                  }}
-              >
-                <ListItemIcon>
-                  <RestoreIcon fontSize="small" sx={{color: theme.palette.primary.dark}}/>
-                </ListItemIcon>
-                <ListItemText>{'Restore'}</ListItemText>
-              </MenuItem>
-            ]
+      <>
+        <Menu
+            ref={menuRef}
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleClose}
+            onClick={handleClose}
+            slotProps={{
+              paper: {
+                elevation: 0,
+                sx: {
+                  overflow: 'visible',
+                  filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.08))',
+                  mt: 1.5,
+                  borderRadius: '12px',
+                  border: '1px solid rgba(0, 0, 0, 0.06)',
+                  minWidth: 180,
+                },
+                // Add onClick handler to stop propagation at the paper level
+                onClick: (e) => e.stopPropagation()
+              }
+            }}
+            transformOrigin={{horizontal: 'right', vertical: 'top'}}
+            anchorOrigin={{horizontal: 'right', vertical: 'bottom'}}
+            anchorPosition={isRightClick && position ? {top: position.top, left: position.left} : undefined}
+            anchorReference={isRightClick ? 'anchorPosition' : 'anchorEl'}
+        >
+          {isTrash ? (
+              // Only show Delete and Restore options for items in trash
+              [
+                <MenuItem
+                    sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      OnPermanentDelete?.call();
+                    }}
+                >
+                  <ListItemIcon>
+                    <DeleteIcon fontSize="small" sx={{color: theme.palette.error.main}}/>
+                  </ListItemIcon>
+                  <ListItemText>{'Delete'}</ListItemText>
+                </MenuItem>,
+                <MenuItem
+                    sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      OnRestore?.call();
+                    }}
+                >
+                  <ListItemIcon>
+                    <RestoreIcon fontSize="small" sx={{color: theme.palette.primary.dark}}/>
+                  </ListItemIcon>
+                  <ListItemText>{'Restore'}</ListItemText>
+                </MenuItem>
+              ]
 
-        ) : (
-            // Show all options for regular items
-            [
-              <MenuItem
-                  sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRename();
-                  }}
-              >
-                <ListItemIcon>
-                  <RenameIcon fontSize="small" sx={{color: theme.palette.primary.main}}/>
-                </ListItemIcon>
-                <ListItemText>Rename</ListItemText>
-              </MenuItem>,
+          ) : (
+              // Show all options for regular items
+              [
+                <MenuItem
+                    sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRename();
+                    }}
+                >
+                  <ListItemIcon>
+                    <RenameIcon fontSize="small" sx={{color: theme.palette.primary.main}}/>
+                  </ListItemIcon>
+                  <ListItemText>Rename</ListItemText>
+                </MenuItem>,
 
-              <MenuItem
-                  sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onMoveToTrash();
-                  }}
-              >
-                <ListItemIcon>
-                  <DeleteIcon fontSize="small" sx={{color: theme.palette.error.main}}/>
-                </ListItemIcon>
-                <ListItemText>{'Move to Trash'}</ListItemText>
-              </MenuItem>,
+                <MenuItem
+                    sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTrashConfirmOpen(true);
+                    }}
+                >
+                  <ListItemIcon>
+                    <DeleteIcon fontSize="small" sx={{color: theme.palette.error.main}}/>
+                  </ListItemIcon>
+                  <ListItemText>{'Move to Trash'}</ListItemText>
+                </MenuItem>,
 
-              <MenuItem
-                  sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onMoveTo();
-                  }}
-              >
-                <ListItemIcon>
-                  <MoveIcon fontSize="small" sx={{color: theme.palette.primary.main}}/>
-                </ListItemIcon>
-                <ListItemText>Move to...</ListItemText>
-              </MenuItem>,
+                <MenuItem
+                    sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMoveTo();
+                    }}
+                >
+                  <ListItemIcon>
+                    <MoveIcon fontSize="small" sx={{color: theme.palette.primary.main}}/>
+                  </ListItemIcon>
+                  <ListItemText>Move to...</ListItemText>
+                </MenuItem>,
 
-              <Divider sx={{my: 1}}/>,
+                <Divider sx={{my: 1}}/>,
 
-              !isFolder && (
-                  <MenuItem
-                      sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDownload();
-                      }}
-                  >
-                    <ListItemIcon>
-                      <DownloadIcon fontSize="small" sx={{color: theme.palette.primary.main}}/>
-                    </ListItemIcon>
-                    <ListItemText>Download</ListItemText>
-                  </MenuItem>
-              ),
+                !isFolder && (
+                    <MenuItem
+                        sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDownload();
+                        }}
+                    >
+                      <ListItemIcon>
+                        <DownloadIcon fontSize="small" sx={{color: theme.palette.primary.main}}/>
+                      </ListItemIcon>
+                      <ListItemText>Download</ListItemText>
+                    </MenuItem>
+                ),
 
-              isFolder && (
-                  <MenuItem
-                      sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onUploadTo();
-                      }}
-                  >
-                    <ListItemIcon>
-                      <UploadIcon fontSize="small" sx={{color: theme.palette.primary.main}}/>
-                    </ListItemIcon>
-                    <ListItemText>Upload to</ListItemText>
-                  </MenuItem>
-              )
-            ]
-        )}
-      </Menu>
+                isFolder && (
+                    <MenuItem
+                        sx={{borderRadius: '8px', mx: 0.5, my: 0.25}}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUploadTo();
+                        }}
+                    >
+                      <ListItemIcon>
+                        <UploadIcon fontSize="small" sx={{color: theme.palette.primary.main}}/>
+                      </ListItemIcon>
+                      <ListItemText>Upload to</ListItemText>
+                    </MenuItem>
+                )
+              ]
+          )}
+        </Menu>
+
+        {/* Confirmation Popup for Move to Trash */}
+        <ConfirmationPopup
+          open={trashConfirmOpen}
+          onClose={() => setTrashConfirmOpen(false)}
+          onConfirm={onMoveToTrash}
+          title="Move to Trash"
+          message={`Are you sure you want to move this ${isFolder ? 'folder' : 'file'} to trash?`}
+          confirmButtonText="Move to Trash"
+          severity="warning"
+        />
+      </>
   );
 };
 

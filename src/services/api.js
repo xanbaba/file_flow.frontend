@@ -136,7 +136,14 @@ export const fetchWithRetry = async (url, options, maxRetries = 3, initialDelay 
         }
       }
 
-      return await response.json();
+      // Check if the response has content before trying to parse it as JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      } else {
+        // For empty responses or non-JSON responses, return an empty object
+        return {};
+      }
     } catch (error) {
       // Don't retry for client errors (4xx) except for network issues
       if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
@@ -225,6 +232,386 @@ export const createFolder = async (folderName, targetFolderId = null) => {
     );
   } catch (error) {
     console.error('Error creating folder:', error);
+    throw error;
+  }
+};
+
+/**
+ * Renames a file
+ * @param {string} fileId - The ID of the file to rename
+ * @param {string} newName - The new name for the file
+ * @returns {Promise<Object>} - Promise resolving to the updated file object
+ */
+export const renameFile = async (fileId, newName) => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/files/${fileId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            newName
+          })
+        }
+    );
+  } catch (error) {
+    console.error('Error renaming file:', error);
+    throw error;
+  }
+};
+
+/**
+ * Renames a folder
+ * @param {string} folderId - The ID of the folder to rename
+ * @param {string} newFolderName - The new name for the folder
+ * @returns {Promise<Object>} - Promise resolving to the updated folder object
+ */
+export const renameFolder = async (folderId, newFolderName) => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/folders/${folderId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            newFolderName
+          })
+        }
+    );
+  } catch (error) {
+    console.error('Error renaming folder:', error);
+    throw error;
+  }
+};
+
+/**
+ * Moves a file or folder to a different folder
+ * @param {string} itemId - The ID of the file or folder to move
+ * @param {string|null} targetFolderId - The ID of the destination folder. If null, moves to root.
+ * @returns {Promise<Object>} - Promise resolving to the updated item object
+ */
+export const moveItem = async (itemId, targetFolderId = null) => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/items/${itemId}/move`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            targetFolderId
+          })
+        }
+    );
+  } catch (error) {
+    console.error('Error moving item:', error);
+    throw error;
+  }
+};
+
+/**
+ * Moves a file to trash
+ * @param {string} fileId - The ID of the file to move to trash
+ * @returns {Promise<Object>} - Promise resolving to success status
+ */
+export const moveFileToTrash = async (fileId) => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/files/${fileId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+    );
+  } catch (error) {
+    console.error('Error moving file to trash:', error);
+    throw error;
+  }
+};
+
+/**
+ * Moves a folder to trash
+ * @param {string} folderId - The ID of the folder to move to trash
+ * @returns {Promise<Object>} - Promise resolving to success status
+ */
+export const moveFolderToTrash = async (folderId) => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/folders/${folderId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+    );
+  } catch (error) {
+    console.error('Error moving folder to trash:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches all starred items (files and folders)
+ * @returns {Promise<Array>} - Promise resolving to an array of starred file and folder objects
+ */
+export const fetchStarredItems = async () => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/items/starred`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+    );
+  } catch (error) {
+    console.error('Error fetching starred items:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches recently accessed items (files and folders)
+ * @returns {Promise<Array>} - Promise resolving to an array of recent file and folder objects
+ */
+export const fetchRecentItems = async () => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/items/recent`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+    );
+  } catch (error) {
+    console.error('Error fetching recent items:', error);
+    throw error;
+  }
+};
+
+/**
+ * Marks an item as starred
+ * @param {string} itemId - The ID of the item to star
+ * @returns {Promise<Object>} - Promise resolving to success status
+ */
+export const starItem = async (itemId) => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/items/${itemId}/star`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+    );
+  } catch (error) {
+    console.error('Error starring item:', error);
+    throw error;
+  }
+};
+
+/**
+ * Removes starred status from an item
+ * @param {string} itemId - The ID of the item to unstar
+ * @returns {Promise<Object>} - Promise resolving to success status
+ */
+export const unstarItem = async (itemId) => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/items/${itemId}/star`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+    );
+  } catch (error) {
+    console.error('Error unstarring item:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches user storage information
+ * @returns {Promise<Object>} - Promise resolving to user storage information
+ */
+export const fetchUserStorage = async () => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/users/storage`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+    );
+  } catch (error) {
+    console.error('Error fetching user storage information:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches items in trash
+ * @returns {Promise<Array>} - Promise resolving to an array of trashed file and folder objects
+ */
+export const fetchTrashItems = async () => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/items/trash`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+    );
+  } catch (error) {
+    console.error('Error fetching trash items:', error);
+    throw error;
+  }
+};
+
+/**
+ * Empties the trash (permanently deletes all items in trash)
+ * @returns {Promise<Object>} - Promise resolving to success status
+ */
+export const emptyTrash = async () => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/trash/empty`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+    );
+  } catch (error) {
+    console.error('Error emptying trash:', error);
+    throw error;
+  }
+};
+
+/**
+ * Restores all items in trash
+ * @returns {Promise<Object>} - Promise resolving to success status
+ */
+export const restoreAllTrash = async () => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/trash/restore`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+    );
+  } catch (error) {
+    console.error('Error restoring all trash items:', error);
+    throw error;
+  }
+};
+
+/**
+ * Permanently deletes a file
+ * @param {string} fileId - The ID of the file to permanently delete
+ * @returns {Promise<Object>} - Promise resolving to success status
+ */
+export const permanentDeleteFile = async (fileId) => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/files/${fileId}/permanent`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+    );
+  } catch (error) {
+    console.error('Error permanently deleting file:', error);
+    throw error;
+  }
+};
+
+/**
+ * Permanently deletes a folder
+ * @param {string} folderId - The ID of the folder to permanently delete
+ * @returns {Promise<Object>} - Promise resolving to success status
+ */
+export const permanentDeleteFolder = async (folderId) => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/folders/${folderId}/permanent`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+    );
+  } catch (error) {
+    console.error('Error permanently deleting folder:', error);
+    throw error;
+  }
+};
+
+/**
+ * Restores a file from trash
+ * @param {string} fileId - The ID of the file to restore
+ * @returns {Promise<Object>} - Promise resolving to success status
+ */
+export const restoreFile = async (fileId) => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/files/${fileId}/restore`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+    );
+  } catch (error) {
+    console.error('Error restoring file:', error);
+    throw error;
+  }
+};
+
+/**
+ * Restores a folder from trash
+ * @param {string} folderId - The ID of the folder to restore
+ * @returns {Promise<Object>} - Promise resolving to success status
+ */
+export const restoreFolder = async (folderId) => {
+  try {
+    return await fetchWithRetry(
+        `${apiConfig.baseUrl}/api/folders/${folderId}/restore`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+    );
+  } catch (error) {
+    console.error('Error restoring folder:', error);
     throw error;
   }
 };

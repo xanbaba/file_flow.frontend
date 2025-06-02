@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Drawer, 
   List, 
@@ -14,7 +14,8 @@ import {
   alpha,
   IconButton,
   Paper,
-  InputBase
+  InputBase,
+  CircularProgress
 } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -27,6 +28,8 @@ import {
   Storage as StorageIcon,
   Search as SearchIcon
 } from '@mui/icons-material';
+import { fetchUserStorage } from '../services/api';
+import { useAuthToken } from '../components/Auth/AuthTokenProvider';
 
 const drawerWidth = 240;
 
@@ -61,6 +64,36 @@ const Sidebar = () => {
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+  const { isTokenReady } = useAuthToken();
+
+  const [storageData, setStorageData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const isInitialMount = useRef(true);
+
+  useEffect(() => {
+    const getStorageData = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchUserStorage();
+        setStorageData(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching storage data:', err);
+        setError('Failed to load storage information');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isTokenReady && isInitialMount.current) {
+      isInitialMount.current = false;
+      getStorageData();
+    } else if (isTokenReady && !isInitialMount.current) {
+      // Optionally refresh data when token becomes ready but not on initial mount
+      // This is useful if the token expires and is refreshed
+    }
+  }, [isTokenReady]);
 
   return (
     <Drawer
@@ -220,28 +253,45 @@ const Sidebar = () => {
             Storage
           </Typography>
         </Box>
-        <Box
-          sx={{
-            width: '100%',
-            height: 8,
-            bgcolor: alpha(theme.palette.primary.main, 0.15),
-            borderRadius: 4,
-            mb: 1.5,
-            overflow: 'hidden'
-          }}
-        >
-          <Box
-            sx={{
-              width: '35%',
-              height: '100%',
-              bgcolor: theme.palette.primary.main,
-              borderRadius: 4,
-            }}
-          />
-        </Box>
-        <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
-          3.5 GB of 10 GB used
-        </Typography>
+
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+            <CircularProgress size={24} />
+          </Box>
+        ) : error ? (
+          <Typography variant="caption" sx={{ color: 'error.main', display: 'block', textAlign: 'center' }}>
+            {error}
+          </Typography>
+        ) : storageData ? (
+          <>
+            <Box
+              sx={{
+                width: '100%',
+                height: 8,
+                bgcolor: alpha(theme.palette.primary.main, 0.15),
+                borderRadius: 4,
+                mb: 1.5,
+                overflow: 'hidden'
+              }}
+            >
+              <Box
+                sx={{
+                  width: `${(storageData.usedSpace / storageData.maxSpace) * 100}%`,
+                  height: '100%',
+                  bgcolor: theme.palette.primary.main,
+                  borderRadius: 4,
+                }}
+              />
+            </Box>
+            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+              {(storageData.usedSpace / 1000).toFixed(1)} GB of {(storageData.maxSpace / 1000).toFixed(1)} GB used
+            </Typography>
+          </>
+        ) : (
+          <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+            No storage data available
+          </Typography>
+        )}
       </Box>
     </Drawer>
   );

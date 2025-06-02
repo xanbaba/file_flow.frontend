@@ -1,24 +1,124 @@
-import React from 'react';
-import {Box, Typography, useTheme} from '@mui/material';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {Box, Typography, useTheme, CircularProgress} from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import {
   AccessTime as AccessTimeIcon
 } from '@mui/icons-material';
 import FileExplorer from '../../components/FileExplorer/FileExplorer';
+import { fetchRecentItems } from '../../services/api';
+import { useFileSystem } from '../../contexts/FileSystemContext';
+import { useAuthToken } from '../../components/Auth/AuthTokenProvider';
 
 const RecentPage = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
+  const { isTokenReady } = useAuthToken();
+  const [recentItems, setRecentItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { navigateToFolder } = useFileSystem();
+  const isInitialMount = useRef(true);
 
+  // Helper function to determine file color based on file extension
+  const getFileColor = (fileName) => {
+    if (!fileName) return '#9bbec7'; // Default to light blue
 
-  // Mock data for recent files and folders
-  const recentItems = [
-    {id: 3, name: 'Project Proposal.docx', type: 'file', lastModified: '2023-05-18', color: theme.palette.primary.main},
-    {id: 4, name: 'Budget.xlsx', type: 'file', lastModified: '2023-05-17', color: theme.palette.secondary.main},
-    {id: 5, name: 'Presentation.pptx', type: 'file', lastModified: '2023-05-16', color: theme.palette.custom.yellow},
-    {id: 1, name: 'Documents', type: 'folder', lastModified: '2023-05-15', color: theme.palette.custom.lightGreen},
-    {id: 6, name: 'Marketing Plan', type: 'folder', lastModified: '2023-05-14', color: theme.palette.custom.lightGreen},
-    {id: 7, name: 'Financial Report', type: 'folder', lastModified: '2023-05-12', color: theme.palette.custom.beige},
-    {id: 8, name: 'Meeting Notes.docx', type: 'file', lastModified: '2023-05-11', color: theme.palette.primary.main},
-  ];
+    const extension = fileName.split('.').pop().toLowerCase();
+
+    // Document types
+    if (['doc', 'docx', 'txt', 'pdf', 'rtf'].includes(extension)) {
+      return '#9bbec7'; // Light blue for documents
+    }
+
+    // Spreadsheet types
+    if (['xls', 'xlsx', 'csv'].includes(extension)) {
+      return '#a8b7ab'; // Light green for spreadsheets
+    }
+
+    // Presentation types
+    if (['ppt', 'pptx'].includes(extension)) {
+      return '#f6e27f'; // Yellow for presentations
+    }
+
+    // Image types
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(extension)) {
+      return '#e2c391'; // Beige for images
+    }
+
+    // Default color for other file types
+    return '#9bbec7'; // Light blue as default
+  };
+
+  // Format items to add color property
+  const formatItems = (items) => {
+    return items.map(item => ({
+      ...item,
+      color: item.type === 'folder' ? '#f6e27f' : getFileColor(item.name), // Yellow for folders, dynamic for files
+    }));
+  };
+
+  // Define fetchItems function with useCallback to ensure it's stable across renders
+  const fetchItems = useCallback(async () => {
+    if (!isTokenReady) {
+      console.warn('Authentication token not ready. Cannot fetch recent items.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const items = await fetchRecentItems();
+      setRecentItems(formatItems(items));
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching recent items:', err);
+      setError('Failed to load recent items');
+    } finally {
+      setLoading(false);
+    }
+  }, [isTokenReady]);
+
+  // Initial data fetch
+  useEffect(() => {
+    if (isTokenReady && isInitialMount.current) {
+      isInitialMount.current = false;
+      fetchItems();
+    }
+  }, [fetchItems, isTokenReady]);
+
+  // Set up event listener for file operations
+  useEffect(() => {
+    // Function to handle file operation events
+    const handleFileOperation = () => {
+      fetchItems();
+    };
+
+    // Add event listeners for file operations
+    window.addEventListener('fileRenamed', handleFileOperation);
+    window.addEventListener('fileMoved', handleFileOperation);
+    window.addEventListener('fileDeleted', handleFileOperation);
+    window.addEventListener('folderRenamed', handleFileOperation);
+    window.addEventListener('folderMoved', handleFileOperation);
+    window.addEventListener('folderDeleted', handleFileOperation);
+
+    // Clean up event listeners
+    return () => {
+      window.removeEventListener('fileRenamed', handleFileOperation);
+      window.removeEventListener('fileMoved', handleFileOperation);
+      window.removeEventListener('fileDeleted', handleFileOperation);
+      window.removeEventListener('folderRenamed', handleFileOperation);
+      window.removeEventListener('folderMoved', handleFileOperation);
+      window.removeEventListener('folderDeleted', handleFileOperation);
+    };
+  }, [fetchItems]);
+
+  // Handle item click - navigate to folder if it's a folder
+  const handleItemClick = (item) => {
+    if (item.type === 'folder') {
+      // Navigate to the homepage with the folder ID as a URL parameter
+      navigate(`/?folder=${item.id}`);
+    }
+    // For files, you might want to implement a preview or download functionality
+  };
 
   return (
       <Box sx={{flexGrow: 1}}>
@@ -30,13 +130,30 @@ const RecentPage = () => {
           </Typography>
         </Box>
 
+        {/* Loading State */}
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <Typography color="error" sx={{ my: 2 }}>
+            {error}
+          </Typography>
+        )}
+
         {/* Recent Files Section */}
-        <FileExplorer
-            title=""
-            items={recentItems}
-            showViewToggle={true}
-            defaultViewMode="list"
-        />
+        {!loading && !error && (
+          <FileExplorer
+              title=""
+              items={recentItems}
+              showViewToggle={true}
+              defaultViewMode="list"
+              onItemClick={handleItemClick}
+          />
+        )}
       </Box>
   );
 };

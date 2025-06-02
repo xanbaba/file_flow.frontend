@@ -28,7 +28,7 @@
           "FileFlow.Api"
         ],
         "summary": "Retrieves user storage information",
-        "description": "Returns details about the user's storage usage and limits.\n\n### Behavior\n- Returns storage information for the authenticated user\n- Calculates total used space across all the user's files\n- Provides a breakdown of storage usage by file category (documents, images, videos, other)\n- Includes the user's maximum allowed storage space\n\n### Response\nReturns a UserStorageResponse object containing information about storage usage, limits, and breakdown by file type.",
+        "description": "Returns details about the user's storage usage and limits.\n\n### Behavior\n- Returns storage information for the authenticated user\n- Calculates total used space across all the user's files\n- Provides a breakdown of storage usage by file category (documents, images, videos, other)\n- Includes the user's maximum allowed storage space\n\n### Response\nReturns a UserStorageResponse object containing information about storage usage, limits, and breakdown by file type.\n\nNumbers are in MB.",
         "operationId": "GetStorageEndpoint",
         "responses": {
           "200": {
@@ -156,7 +156,7 @@
           "FileFlow.Api"
         ],
         "summary": "Retrieves items in trash",
-        "description": "Returns a list of all files and folders that are currently in the user's trash.\n\n### Behavior\n- Returns only items that belong to the authenticated user\n- Returns both files and folders that have IsInTrash=true\n- Results are typically sorted by the date they were moved to trash\n- May include information about when items will be automatically permanently deleted\n\n### Response\nReturns an array of FileFolderResponse objects containing metadata about each trashed item.",
+        "description": "Returns a list of top-level files and folders that are currently in the user's trash.\n\n### Behavior\n- Returns only items that belong to the authenticated user\n- Returns both files and folders that have IsInTrash=true\n- Returns only top-level files and folders. A file or folder is considered a top-level one when it is located in root directory, or its parent is not in trash\n\n### Response\nReturns an array of FileFolderResponse objects containing metadata about each trashed item.",
         "operationId": "GetTrashItemsEndpoint",
         "responses": {
           "200": {
@@ -236,6 +236,28 @@
           },
           "401": {
             "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/trash/restore": {
+      "post": {
+        "tags": [
+          "FileFlow.Api"
+        ],
+        "summary": "Restore all items in trash",
+        "description": "Restores all items in the user's trash.\n\n### Behavior\n- Only restores items that belong to the authenticated user\n- Sets the IsInTrash flag to false in the item metadata\n- If the item's original parent folder no longer exists or is in trash, the item will be moved to root\n### Response\nReturns 200 Ok if successful.",
+        "operationId": "RestoreTrashEndpoint",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Void"
+                }
+              }
+            }
           }
         }
       }
@@ -1209,6 +1231,10 @@
             "format": "int32"
           }
         },
+        "additionalProperties": false
+      },
+      "Void": {
+        "type": "object",
         "additionalProperties": false
       }
     },

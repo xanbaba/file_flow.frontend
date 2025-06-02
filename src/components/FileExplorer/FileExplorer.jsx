@@ -15,7 +15,8 @@ const FileExplorer = ({
   onShowMoreClick,
   maxItems = null,
   horizontalScroll = false,
-  isTrash = false
+  isTrash = false,
+  onItemClick
 }) => {
   const theme = useTheme();
   const [viewMode, setViewMode] = useState(defaultViewMode);
@@ -31,7 +32,13 @@ const FileExplorer = ({
   const { navigateToFolder } = useFileSystem();
 
   const handleItemClick = (item) => {
-    // Navigate to folder if the item is a folder
+    // If a custom click handler is provided, use it
+    if (onItemClick) {
+      onItemClick(item);
+      return;
+    }
+
+    // Default behavior: navigate to folder if the item is a folder
     if (item.type === 'folder') {
       navigateToFolder(item.id);
     }
