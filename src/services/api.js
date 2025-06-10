@@ -189,13 +189,18 @@ export const fetchFolderChildren = async (folderId = 'root') => {
 
 /**
  * Fetches metadata for a specific folder
- * @param {string} folderId - The ID of the folder to retrieve
+ * @param {string} idOrPath - The ID or path of the folder to retrieve
  * @returns {Promise<Object>} - Promise resolving to a folder object
  */
-export const fetchFolder = async (folderId) => {
+export const fetchFolder = async (idOrPath) => {
   try {
+    // Encode the path if it contains slashes
+    const encodedIdOrPath = typeof idOrPath === 'string' && idOrPath.includes('/') 
+      ? encodeURIComponent(idOrPath) 
+      : idOrPath;
+
     return await fetchWithRetry(
-        `${apiConfig.baseUrl}/api/folders/${folderId}`,
+        `${apiConfig.baseUrl}/api/folders/${encodedIdOrPath}`,
         {
           method: 'GET',
           headers: {

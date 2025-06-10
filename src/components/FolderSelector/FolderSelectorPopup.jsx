@@ -26,7 +26,7 @@ import {
 import { fetchFolderChildren } from '../../services/api';
 import { useAuthToken } from '../Auth/AuthTokenProvider';
 
-const FolderSelectorPopup = ({ open, onClose, onSelect, onConfirm, initialSelectedFolder, error: externalError }) => {
+const FolderSelectorPopup = ({ open, onClose, onSelect, onConfirm, initialSelectedFolder, error: externalError, title, description, confirmButtonText }) => {
   const theme = useTheme();
   const { isTokenReady } = useAuthToken();
   const [selectedFolder, setSelectedFolder] = useState(initialSelectedFolder || null);
@@ -354,7 +354,7 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, onConfirm, initialSelect
         {/* Header */}
         <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Select Destination Folder
+            {onSelect ? "Select Destination Folder" : title || "Select Destination Folder"}
           </Typography>
           <IconButton onClick={onClose} size="small">
             <CloseIcon />
@@ -373,7 +373,7 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, onConfirm, initialSelect
             minHeight: '300px'
           }}>
             <Typography variant="body2" sx={{ mb: 2 }}>
-              Select a folder to store your files:
+              {description || "Select a folder to store your files:"}
             </Typography>
             {(externalError || error) && (
               <Box sx={{ mb: 2 }}>
@@ -400,7 +400,7 @@ const FolderSelectorPopup = ({ open, onClose, onSelect, onConfirm, initialSelect
             onClick={handleConfirm}
             disabled={!selectedFolder}
           >
-            Select
+            {confirmButtonText || "Select"}
           </Button>
         </Box>
       </Box>

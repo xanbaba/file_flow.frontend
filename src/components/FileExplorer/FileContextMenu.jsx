@@ -31,7 +31,8 @@ const FileContextMenu = ({
                            isRightClick,
                            OnPermanentDelete,
                            OnRestore,
-                           isTrash = false
+                           isTrash = false,
+                           itemName = ''
                          }) => {
   const theme = useTheme();
   const menuRef = useRef(null);
@@ -213,8 +214,8 @@ const FileContextMenu = ({
           open={trashConfirmOpen}
           onClose={() => setTrashConfirmOpen(false)}
           onConfirm={onMoveToTrash}
-          title="Move to Trash"
-          message={`Are you sure you want to move this ${isFolder ? 'folder' : 'file'} to trash?`}
+          title={`Move ${itemName} to Trash`}
+          message={`Are you sure you want to move ${itemName ? `"${itemName}"` : `this ${isFolder ? 'folder' : 'file'}`} to trash?`}
           confirmButtonText="Move to Trash"
           severity="warning"
         />

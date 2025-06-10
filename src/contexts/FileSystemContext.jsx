@@ -32,7 +32,7 @@ export const FileSystemProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   // Fetch the contents of a folder
-  const fetchFolderContents = useCallback(async (folderId = 'root') => {
+  const fetchFolderContents = useCallback(async (idOrPath = 'root') => {
     if (!isTokenReady) {
       console.warn('Authentication token not ready. Cannot fetch folder contents.');
       setError('Authentication token not ready. Please try again in a moment.');
@@ -42,29 +42,48 @@ export const FileSystemProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const contents = await fetchFolderChildren(folderId);
-      setFolderContents(contents);
-
-      // If not root, fetch folder details to update path
-      if (folderId !== 'root') {
-        const folderDetails = await fetchFolder(folderId);
-        setCurrentFolder(folderDetails);
-
-        // Update the folder path
-        // This is a simplified approach - in a real app, you might need to fetch the full path
-        setFolderPath(prev => {
-          // Check if this folder is already in the path
-          if (!prev.find(item => item.id === folderId)) {
-            return [...prev, { id: folderId, name: folderDetails.name }];
-          }
-          return prev;
-        });
-      } else {
+      // If it's root, directly fetch children
+      if (idOrPath === 'root') {
+        const contents = await fetchFolderChildren('root');
+        setFolderContents(contents);
         setCurrentFolder(null);
+        setCurrentFolderId('root');
         setFolderPath([{ id: 'root', name: 'Home' }]);
-      }
+      } else {
+        // First fetch folder metadata using idOrPath
+        const folderDetails = await fetchFolder(idOrPath);
+        setCurrentFolder(folderDetails);
+        setCurrentFolderId(folderDetails.id);
 
-      setCurrentFolderId(folderId);
+        // Then fetch children using the folder ID
+        const contents = await fetchFolderChildren(folderDetails.id);
+        setFolderContents(contents);
+
+        // Update the folder path using the path field from the folder metadata
+        if (folderDetails.path) {
+          // Split the path and create breadcrumb items
+          const pathParts = folderDetails.path.split('/').filter(part => part.trim() !== '');
+
+          // Create the breadcrumb array starting with Home
+          const newPath = [{ id: 'root', name: 'Home' }];
+
+          // Build the path for each part
+          let currentPath = '';
+
+          for (let i = 0; i < pathParts.length; i++) {
+            currentPath += '/' + pathParts[i];
+            // For the last part, use the current folder's ID
+            const partId = (i === pathParts.length - 1) ? folderDetails.id : currentPath;
+            newPath.push({ 
+              id: partId, 
+              name: pathParts[i],
+              path: currentPath
+            });
+          }
+
+          setFolderPath(newPath);
+        }
+      }
     } catch (err) {
       console.error('Error fetching folder contents:', err);
 
@@ -84,8 +103,8 @@ export const FileSystemProvider = ({ children }) => {
   }, [isTokenReady]);
 
   // Navigate to a folder
-  const navigateToFolder = useCallback((folderId) => {
-    fetchFolderContents(folderId);
+  const navigateToFolder = useCallback((idOrPath) => {
+    fetchFolderContents(idOrPath);
   }, [fetchFolderContents]);
 
   // Navigate to a specific path index
@@ -95,9 +114,13 @@ export const FileSystemProvider = ({ children }) => {
         const targetFolder = prev[index];
         // Truncate the path to this index
         const newPath = prev.slice(0, index + 1);
+
+        // Use the folder's path or id for navigation
+        const idOrPath = targetFolder.path || targetFolder.id;
+
         // Directly fetch folder contents without setTimeout
         // This avoids potential duplicate calls and race conditions
-        fetchFolderContents(targetFolder.id);
+        fetchFolderContents(idOrPath);
         return newPath;
       }
       return prev;
@@ -182,6 +205,7 @@ export const FileSystemProvider = ({ children }) => {
   const refreshCurrentFolder = useCallback(() => {
     // Directly fetch folder contents without setTimeout
     // This avoids potential duplicate calls and race conditions
+    // Use the current folder ID for refreshing
     fetchFolderContents(currentFolderId);
   }, [currentFolderId, fetchFolderContents]);
 

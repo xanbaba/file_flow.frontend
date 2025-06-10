@@ -85,21 +85,6 @@ const ProfileSection = () => {
             >
               {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </Avatar>
-            <IconButton 
-              sx={{ 
-                position: 'absolute', 
-                bottom: 0, 
-                right: 0, 
-                bgcolor: theme.palette.background.paper,
-                border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-                '&:hover': {
-                  bgcolor: alpha(theme.palette.primary.main, 0.1)
-                }
-              }}
-              size="small"
-            >
-              <PhotoCameraIcon fontSize="small" />
-            </IconButton>
           </Box>
 
           <Box sx={{ ml: 3, flexGrow: 1 }}>

@@ -19,7 +19,11 @@ const FileExplorer = ({
   onItemClick
 }) => {
   const theme = useTheme();
-  const [viewMode, setViewMode] = useState(defaultViewMode);
+  const [viewMode, setViewMode] = useState(() => {
+    // Try to get the view mode from localStorage, or use the default
+    const savedViewMode = localStorage.getItem('fileExplorerViewMode');
+    return savedViewMode || defaultViewMode;
+  });
 
   const displayItems = useMemo(() => {
     return maxItems ? items.slice(0, maxItems) : items;
@@ -27,6 +31,8 @@ const FileExplorer = ({
 
   const handleViewModeChange = (mode) => {
     setViewMode(mode);
+    // Save the view mode to localStorage
+    localStorage.setItem('fileExplorerViewMode', mode);
   };
 
   const { navigateToFolder } = useFileSystem();

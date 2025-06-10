@@ -252,7 +252,7 @@
           "200": {
             "description": "OK",
             "content": {
-              "text/plain": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Void"
                 }
@@ -440,50 +440,6 @@
           }
         }
       },
-      "get": {
-        "tags": [
-          "FileFlow.Api"
-        ],
-        "summary": "Retrieves metadata for a specific folder",
-        "description": "Retrieves detailed metadata for a specified folder.\n\n### Route Parameters\n- **id** (Guid): The unique identifier of the folder to retrieve.\n\n### Behavior\n- Returns metadata for the specified folder if it belongs to the authenticated user\n- Will return folder metadata even if the folder is in trash\n\n### Response\nReturns a FileFolderResponse object containing metadata about the folder, including its name, path, and other properties.",
-        "operationId": "GetFolderEndpoint",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileFolderResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorMessage"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      },
       "put": {
         "tags": [
           "FileFlow.Api"
@@ -596,6 +552,51 @@
           },
           "400": {
             "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/folders/{idOrPath}": {
+      "get": {
+        "tags": [
+          "FileFlow.Api"
+        ],
+        "summary": "Retrieves metadata for a specific folder",
+        "description": "Retrieves detailed metadata for a specified folder.\n\n### Route Parameters\n- **idOrPath** (string): The unique identifier or the path of the folder to retrieve.\n\n### Behavior\n- Returns metadata for the specified folder if it belongs to the authenticated user\n- Will return folder metadata even if the folder is in trash\n\n### Response\nReturns a FileFolderResponse object containing metadata about the folder, including its name, path, and other properties.",
+        "operationId": "GetFolderEndpoint",
+        "parameters": [
+          {
+            "name": "idOrPath",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileFolderResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorMessage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         }
       }
