@@ -11,7 +11,8 @@ import {
   Divider,
   IconButton,
   useTheme,
-  Popover
+  Popover,
+  Button
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -21,36 +22,11 @@ import {
   Error as ErrorIcon,
   CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
-
-const mockNotifications = [
-  {
-    id: 1,
-    type: 'info',
-    message: 'Your file has been uploaded successfully',
-    time: '2 minutes ago'
-  },
-  {
-    id: 2,
-    type: 'warning',
-    message: 'Storage space is running low',
-    time: '1 hour ago'
-  },
-  {
-    id: 3,
-    type: 'error',
-    message: 'Failed to upload file "document.pdf"',
-    time: '3 hours ago'
-  },
-  {
-    id: 4,
-    type: 'success',
-    message: 'Your account has been verified',
-    time: '1 day ago'
-  }
-];
+import { useNotification } from '../../contexts/NotificationContext';
 
 const NotificationPanel = ({ anchorEl, open, onClose }) => {
   const theme = useTheme();
+  const { notifications, clearNotifications } = useNotification();
 
   const getNotificationIcon = (type) => {
     switch (type) {
@@ -94,15 +70,26 @@ const NotificationPanel = ({ anchorEl, open, onClose }) => {
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
           Notifications
         </Typography>
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+        <Box sx={{ display: 'flex' }}>
+          {notifications.length > 0 && (
+            <Button 
+              size="small" 
+              onClick={clearNotifications}
+              sx={{ mr: 1, fontSize: '0.75rem' }}
+            >
+              Clear All
+            </Button>
+          )}
+          <IconButton onClick={onClose} size="small">
+            <CloseIcon />
+          </IconButton>
+        </Box>
       </Box>
       <Divider />
-      
-      {mockNotifications.length > 0 ? (
+
+      {notifications.length > 0 ? (
         <List sx={{ p: 0 }}>
-          {mockNotifications.map((notification, index) => (
+          {notifications.map((notification, index) => (
             <React.Fragment key={notification.id}>
               <ListItem 
                 alignItems="flex-start" 
@@ -135,7 +122,7 @@ const NotificationPanel = ({ anchorEl, open, onClose }) => {
                   }}
                 />
               </ListItem>
-              {index < mockNotifications.length - 1 && (
+              {index < notifications.length - 1 && (
                 <Divider variant="inset" component="li" />
               )}
             </React.Fragment>

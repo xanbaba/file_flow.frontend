@@ -114,8 +114,12 @@ const Header = () => {
 
   const handleCreateFolder = async (folderData) => {
     try {
-      await createFolder(folderData.folderName, folderData.targetFolderId);
+      const newFolder = await createFolder(folderData.folderName, folderData.targetFolderId);
       refreshCurrentFolder();
+
+      // Dispatch a folderCreated event to notify other components
+      window.dispatchEvent(new CustomEvent('folderCreated', { detail: newFolder }));
+
       handleCloseNewFolderPopup();
     } catch (error) {
       console.error('Error creating folder:', error);
@@ -234,6 +238,7 @@ const Header = () => {
             <IconButton
                 size="medium"
                 onClick={handleNotificationClick}
+                data-testid="notification-button"
                 sx={{
                   color: theme.palette.text.primary,
                   backgroundColor: 'transparent',
@@ -387,6 +392,13 @@ const Header = () => {
           open={isUploadPopupOpen}
           onClose={handleCloseUploadPopup}
           folders={folders}
+          onOpenNotificationPanel={() => {
+            // Use the notification button as the anchor element
+            const notificationButton = document.querySelector('[data-testid="notification-button"]');
+            if (notificationButton) {
+              setNotificationAnchorEl(notificationButton);
+            }
+          }}
         />
 
         {/* New Folder Popup */}

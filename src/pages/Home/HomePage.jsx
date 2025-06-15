@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {Box, Typography, useTheme, CircularProgress} from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import FileExplorer from '../../components/FileExplorer/FileExplorer';
@@ -29,65 +29,8 @@ const HomePage = () => {
   // Use a ref to track if this is the initial mount
   const isInitialMount = useRef(true);
 
-  // Check for folder parameter in URL and refresh folder contents
-  // Also fetch recent items on initial mount
-  useEffect(() => {
-    if (isTokenReady) {
-      // Check if we have a folder parameter in the URL
-      const params = new URLSearchParams(location.search);
-      const folderParam = params.get('folder');
-
-      if (folderParam) {
-        // If we have a folder parameter, navigate to that folder
-        navigateToFolder(folderParam);
-        // Clear the URL parameter to avoid navigating to the same folder on refresh
-        navigate('/', { replace: true });
-      } else if (isInitialMount.current) {
-        // Only refresh on initial mount if there's no folder parameter
-        refreshCurrentFolder();
-      }
-
-      // Fetch recent items on initial mount
-      if (isInitialMount.current) {
-        fetchRecentItemsData();
-      }
-
-      // Mark as not initial mount anymore
-      isInitialMount.current = false;
-    }
-  }, [refreshCurrentFolder, isTokenReady, location.search, navigate, navigateToFolder]);
-
-  // Set up event listener for file operations
-  useEffect(() => {
-    // Function to handle file operation events
-    const handleFileOperation = () => {
-      refreshCurrentFolder();
-      fetchRecentItemsData(); // Also refresh recent items when file operations occur
-    };
-
-    // Add event listeners for file operations
-    window.addEventListener('fileRenamed', handleFileOperation);
-    window.addEventListener('fileMoved', handleFileOperation);
-    window.addEventListener('fileDeleted', handleFileOperation);
-    window.addEventListener('folderRenamed', handleFileOperation);
-    window.addEventListener('folderMoved', handleFileOperation);
-    window.addEventListener('folderDeleted', handleFileOperation);
-    window.addEventListener('itemStarredStatusChanged', handleFileOperation);
-
-    // Clean up event listeners
-    return () => {
-      window.removeEventListener('fileRenamed', handleFileOperation);
-      window.removeEventListener('fileMoved', handleFileOperation);
-      window.removeEventListener('fileDeleted', handleFileOperation);
-      window.removeEventListener('folderRenamed', handleFileOperation);
-      window.removeEventListener('folderMoved', handleFileOperation);
-      window.removeEventListener('folderDeleted', handleFileOperation);
-      window.removeEventListener('itemStarredStatusChanged', handleFileOperation);
-    };
-  }, [refreshCurrentFolder]);
-
-  // Helper function to determine file color based on file extension
-  const getFileColor = (fileName) => {
+  // Helper function to determine file color based on file extension - memoized with useCallback
+  const getFileColor = useCallback((fileName) => {
     if (!fileName) return '#9bbec7'; // Default to light blue
 
     const extension = fileName.split('.').pop().toLowerCase();
@@ -114,18 +57,18 @@ const HomePage = () => {
 
     // Default color for other file types
     return '#9bbec7'; // Light blue as default
-  };
+  }, []);
 
-  // Format items to add color property
-  const formatItems = (items) => {
+  // Format items to add color property - memoized with useCallback to ensure stability across renders
+  const formatItems = useCallback((items) => {
     return items.map(item => ({
       ...item,
       color: item.type === 'folder' ? '#f6e27f' : getFileColor(item.name), // Yellow for folders, dynamic for files
     }));
-  };
+  }, [getFileColor]);
 
-  // Fetch recent items
-  const fetchRecentItemsData = async () => {
+  // Fetch recent items - memoized with useCallback to ensure stability across renders
+  const fetchRecentItemsData = useCallback(async () => {
     if (!isTokenReady) {
       console.warn('Authentication token not ready. Cannot fetch recent items.');
       return;
@@ -142,7 +85,66 @@ const HomePage = () => {
     } finally {
       setRecentLoading(false);
     }
-  };
+  }, [isTokenReady, formatItems]);
+
+  // Check for folder parameter in URL and refresh folder contents
+  // Also fetch recent items on initial mount
+  useEffect(() => {
+    if (isTokenReady) {
+      // Check if we have a folder parameter in the URL
+      const params = new URLSearchParams(location.search);
+      const folderParam = params.get('folder');
+
+      if (folderParam) {
+        // If we have a folder parameter, navigate to that folder
+        navigateToFolder(folderParam);
+        // Clear the URL parameter to avoid navigating to the same folder on refresh
+        navigate('/', { replace: true });
+      } else if (isInitialMount.current) {
+        // Only refresh on initial mount if there's no folder parameter
+        refreshCurrentFolder();
+      }
+
+      // Fetch recent items only on initial mount
+      if (isInitialMount.current) {
+        fetchRecentItemsData();
+      }
+
+      // Mark as not initial mount anymore
+      isInitialMount.current = false;
+    }
+  }, [refreshCurrentFolder, isTokenReady, location.search, navigate, navigateToFolder]);
+
+  // Set up event listener for file operations
+  useEffect(() => {
+    // Function to handle file operation events
+    const handleFileOperation = () => {
+      refreshCurrentFolder();
+      fetchRecentItemsData(); // Also refresh recent items when file operations occur
+    };
+
+    // Add event listeners for file operations
+    window.addEventListener('fileRenamed', handleFileOperation);
+    window.addEventListener('fileMoved', handleFileOperation);
+    window.addEventListener('fileDeleted', handleFileOperation);
+    window.addEventListener('folderRenamed', handleFileOperation);
+    window.addEventListener('folderMoved', handleFileOperation);
+    window.addEventListener('folderDeleted', handleFileOperation);
+    window.addEventListener('folderCreated', handleFileOperation);
+    window.addEventListener('itemStarredStatusChanged', handleFileOperation);
+
+    // Clean up event listeners
+    return () => {
+      window.removeEventListener('fileRenamed', handleFileOperation);
+      window.removeEventListener('fileMoved', handleFileOperation);
+      window.removeEventListener('fileDeleted', handleFileOperation);
+      window.removeEventListener('folderRenamed', handleFileOperation);
+      window.removeEventListener('folderMoved', handleFileOperation);
+      window.removeEventListener('folderDeleted', handleFileOperation);
+      window.removeEventListener('folderCreated', handleFileOperation);
+      window.removeEventListener('itemStarredStatusChanged', handleFileOperation);
+    };
+  }, [refreshCurrentFolder]);
 
   const handleShowMoreRecent = () => {
     navigate('/recent');

@@ -625,14 +625,15 @@ export const restoreFolder = async (folderId) => {
  * Uploads a file to the specified folder
  * @param {File} file - The file to upload
  * @param {string|null} targetFolderId - The ID of the folder to upload to. If null, uploads to root.
+ * @param {string|null} customFileName - Custom file name to use instead of the original file name
  * @returns {Promise<Object>} - Promise resolving to the uploaded file object
  */
-export const uploadFile = async (file, targetFolderId = null) => {
+export const uploadFile = async (file, targetFolderId = null, customFileName = null) => {
   try {
     const token = await getAuthToken();
     const headers = {
       'Content-Type': 'application/octet-stream',
-      'X-File-Name': file.name,
+      'X-File-Name': customFileName || file.name,
       'X-File-Size': file.size
     };
 

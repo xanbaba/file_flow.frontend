@@ -27,14 +27,16 @@ import FolderSelector from '../FolderSelector/FolderSelector';
 import { uploadFile } from '../../services/api';
 import { useAuthToken } from '../Auth/AuthTokenProvider';
 import { useFileSystem } from '../../contexts/FileSystemContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
-const FileUploadPopup = ({ open, onClose, folders }) => {
+const FileUploadPopup = ({ open, onClose, folders, onOpenNotificationPanel }) => {
   const theme = useTheme();
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
   const dialogRef = useRef(null);
   const { isTokenReady } = useAuthToken();
   const { refreshCurrentFolder } = useFileSystem();
+  const { addNotification, updateNotification } = useNotification();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
 
@@ -116,29 +118,60 @@ const FileUploadPopup = ({ open, onClose, folders }) => {
     setUploading(true);
     setUploadError(null);
 
-    try {
-      // Upload files one by one
-      const uploadPromises = uploadedFiles.map(fileData => 
-        uploadFile(fileData.file, fileData.folder)
-      );
+    // Store files to upload before closing the popup
+    const filesToUpload = [...uploadedFiles];
 
-      await Promise.all(uploadPromises);
+    // Reset state and close popup immediately
+    setUploadedFiles([]);
+    setUploading(false);
+    onClose();
 
-      // Refresh the folder contents to reflect the changes
-      refreshCurrentFolder();
-
-      // Dispatch event to update storage info in sidebar
-      window.dispatchEvent(new Event('storageInfoUpdated'));
-
-      // Reset state and close popup after successful upload
-      setUploadedFiles([]);
-      onClose();
-    } catch (error) {
-      console.error('Error uploading files:', error);
-      setUploadError(error.message || 'Failed to upload files. Please try again.');
-    } finally {
-      setUploading(false);
+    // Open notification panel to show upload progress
+    if (onOpenNotificationPanel) {
+      onOpenNotificationPanel();
     }
+
+    // Create a notification for each file being uploaded
+    const notificationIds = filesToUpload.map(fileData => {
+      return addNotification({
+        type: 'info',
+        message: `Uploading ${fileData.name}...`,
+        timestamp: Date.now()
+      });
+    });
+
+    // Create an array of promises for all uploads
+    const uploadPromises = filesToUpload.map(async (fileData, index) => {
+      try {
+        // Upload the file
+        await uploadFile(fileData.file, fileData.folder, fileData.name);
+
+        // Update notification to show success
+        updateNotification(notificationIds[index], {
+          type: 'success',
+          message: `${fileData.name} has been uploaded`,
+          timestamp: Date.now()
+        });
+      } catch (error) {
+        console.error(`Error uploading file ${fileData.name}:`, error);
+
+        // Update notification to show error
+        updateNotification(notificationIds[index], {
+          type: 'error',
+          message: `Failed to upload ${fileData.name}: ${error.message || 'Unknown error'}`,
+          timestamp: Date.now()
+        });
+      }
+    });
+
+    // Wait for all uploads to complete before refreshing
+    await Promise.all(uploadPromises);
+
+    // Refresh the folder contents to reflect the changes
+    refreshCurrentFolder();
+
+    // Dispatch event to update storage info in sidebar
+    window.dispatchEvent(new Event('storageInfoUpdated'));
   };
 
   // Format file size

@@ -26,12 +26,15 @@ import {
   DeleteOutline as DeleteOutlineIcon,
   CloudQueue as CloudQueueIcon,
   Storage as StorageIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Menu as MenuIcon,
+  ChevronLeft as ChevronLeftIcon
 } from '@mui/icons-material';
 import { fetchUserStorage } from '../services/api';
 import { useAuthToken } from '../components/Auth/AuthTokenProvider';
 
 const drawerWidth = 240;
+const collapsedDrawerWidth = 70;
 
 const menuItems = [
   { 
@@ -60,7 +63,7 @@ const menuItems = [
   },
 ];
 
-const Sidebar = () => {
+const Sidebar = ({ onCollapseChange }) => {
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -69,6 +72,7 @@ const Sidebar = () => {
   const [storageData, setStorageData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const isInitialMount = useRef(true);
 
   // Function to fetch storage data
@@ -114,85 +118,64 @@ const Sidebar = () => {
     };
   }, [isTokenReady]);
 
+  const toggleDrawer = () => {
+    const newCollapsedState = !isCollapsed;
+    setIsCollapsed(newCollapsedState);
+    if (onCollapseChange) {
+      onCollapseChange(newCollapsedState);
+    }
+  };
+
   return (
     <Drawer
       variant="permanent"
       sx={{
-        width: drawerWidth,
+        width: isCollapsed ? collapsedDrawerWidth : drawerWidth,
         flexShrink: 0,
         height: '100vh',
+        transition: theme.transitions.create('width', {
+          easing: theme.transitions.easing.sharp,
+          duration: theme.transitions.duration.enteringScreen,
+        }),
         '& .MuiDrawer-paper': {
-          width: drawerWidth,
+          width: isCollapsed ? collapsedDrawerWidth : drawerWidth,
           boxSizing: 'border-box',
           borderRight: 'none',
           boxShadow: '1px 0px 5px rgba(0, 0, 0, 0.05)',
           padding: '0 8px',
           height: '100%',
           overflowX: 'hidden',
+          transition: theme.transitions.create('width', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
         },
       }}
     >
-
-      {/* Search */}
-      <Box sx={{ 
-        px: 2,
-        py: 2,
-        mb: 2,
-      }}>
-        <Paper
-          component="form"
-          elevation={0}
-          sx={{ 
-            p: '1px 4px',
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'flex-start',
-            width: '100%',
-            borderRadius: '16px',
-            bgcolor: 'rgba(0, 0, 0, 0.03)',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
-            '&:hover': {
-              bgcolor: 'rgba(0, 0, 0, 0.05)',
-              boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.08)'
-            }
-          }}
-        >
-          <IconButton 
-            sx={{ 
-              p: '8px', 
-              color: theme.palette.text.secondary,
-            }} 
-            aria-label="search"
-          >
-            <SearchIcon />
-          </IconButton>
-          <InputBase
-            sx={{ 
-              ml: 1, 
-              flex: 1,
-            }}
-            placeholder="Search..."
-            inputProps={{ 'aria-label': 'search files and folders' }}
-          />
-        </Paper>
+      {/* Hamburger Menu */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-end', p: 1 }}>
+        <IconButton onClick={toggleDrawer}>
+          {isCollapsed ? <MenuIcon /> : <ChevronLeftIcon />}
+        </IconButton>
       </Box>
 
       {/* Files Section */}
-      <Typography 
-        variant="subtitle2" 
-        sx={{ 
-          px: 3, 
-          py: 1.5, 
-          color: theme.palette.text.secondary,
-          fontWeight: 600,
-          fontSize: '0.75rem',
-          letterSpacing: '0.5px',
-          textTransform: 'uppercase',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        Files
-      </Typography>
+      {!isCollapsed && (
+        <Typography 
+          variant="subtitle2" 
+          sx={{ 
+            px: 1.5,
+            color: theme.palette.text.secondary,
+            fontWeight: 600,
+            fontSize: '0.75rem',
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Files
+        </Typography>
+      )}
       <List sx={{ pt: 0 }}>
         {menuItems.map((item, index) => (
           <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
@@ -201,7 +184,8 @@ const Sidebar = () => {
               onClick={() => navigate(item.path)}
               sx={{
                 borderRadius: '10px',
-                justifyContent: 'flex-start',
+                justifyContent: isCollapsed ? 'center' : 'flex-start',
+                px: isCollapsed ? 1 : 2,
                 '&:hover': {
                   backgroundColor: alpha(item.color, 0.1),
                 },
@@ -214,7 +198,8 @@ const Sidebar = () => {
               }}
             >
               <ListItemIcon sx={{ 
-                minWidth: 56,
+                minWidth: isCollapsed ? 0 : 56,
+                mr: isCollapsed ? 0 : 2,
               }}>
                 <Box
                   sx={{
@@ -231,16 +216,18 @@ const Sidebar = () => {
                   {item.icon}
                 </Box>
               </ListItemIcon>
-              <ListItemText 
-                primary={item.text} 
-                primaryTypographyProps={{ 
-                  fontWeight: 500,
-                  fontSize: '0.9rem',
-                  sx: {
-                    whiteSpace: 'nowrap',
-                  }
-                }}
-              />
+              {!isCollapsed && (
+                <ListItemText 
+                  primary={item.text} 
+                  primaryTypographyProps={{ 
+                    fontWeight: 500,
+                    fontSize: '0.9rem',
+                    sx: {
+                      whiteSpace: 'nowrap',
+                    }
+                  }}
+                />
+              )}
             </ListItemButton>
           </ListItem>
         ))}
@@ -249,10 +236,19 @@ const Sidebar = () => {
 
       {/* Storage Usage */}
       <Box sx={{ 
-        p: 3, 
+        p: isCollapsed ? 1 : 3, 
         mt: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: isCollapsed ? 'center' : 'flex-start',
       }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          mb: isCollapsed ? 0 : 1.5,
+          justifyContent: isCollapsed ? 'center' : 'flex-start',
+          width: '100%'
+        }}>
           <Box
             sx={{
               width: 24,
@@ -263,53 +259,81 @@ const Sidebar = () => {
               justifyContent: 'center',
               backgroundColor: alpha(theme.palette.primary.main, 0.15),
               color: theme.palette.primary.main,
-              mr: 1.5
+              mr: isCollapsed ? 0 : 1.5
             }}
           >
             <StorageIcon fontSize="small" />
           </Box>
-          <Typography variant="body2" sx={{ fontWeight: 500, color: theme.palette.text.primary }}>
-            Storage
-          </Typography>
+          {!isCollapsed && (
+            <Typography variant="body2" sx={{ fontWeight: 500, color: theme.palette.text.primary }}>
+              Storage
+            </Typography>
+          )}
         </Box>
 
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: isCollapsed ? 1 : 2 }}>
             <CircularProgress size={24} />
           </Box>
         ) : error ? (
-          <Typography variant="caption" sx={{ color: 'error.main', display: 'block', textAlign: 'center' }}>
-            {error}
-          </Typography>
+          !isCollapsed && (
+            <Typography variant="caption" sx={{ color: 'error.main', display: 'block', textAlign: 'center' }}>
+              {error}
+            </Typography>
+          )
         ) : storageData ? (
           <>
-            <Box
-              sx={{
-                width: '100%',
-                height: 8,
-                bgcolor: alpha(theme.palette.primary.main, 0.15),
-                borderRadius: 4,
-                mb: 1.5,
-                overflow: 'hidden'
-              }}
-            >
+            {!isCollapsed && (
               <Box
                 sx={{
-                  width: `${(storageData.usedSpace / storageData.maxSpace) * 100}%`,
-                  height: '100%',
-                  bgcolor: theme.palette.primary.main,
+                  width: '100%',
+                  height: 8,
+                  bgcolor: alpha(theme.palette.primary.main, 0.15),
                   borderRadius: 4,
+                  mb: 1.5,
+                  overflow: 'hidden'
                 }}
-              />
-            </Box>
-            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
-              {(storageData.usedSpace / 1000).toFixed(1)} GB of {(storageData.maxSpace / 1000).toFixed(1)} GB used
-            </Typography>
+              >
+                <Box
+                  sx={{
+                    width: `${(storageData.usedSpace / storageData.maxSpace) * 100}%`,
+                    height: '100%',
+                    bgcolor: theme.palette.primary.main,
+                    borderRadius: 4,
+                  }}
+                />
+              </Box>
+            )}
+            {isCollapsed ? (
+              <Box
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  position: 'relative',
+                  mt: 1,
+                }}
+              >
+                <CircularProgress
+                  variant="determinate"
+                  value={(storageData.usedSpace / storageData.maxSpace) * 100}
+                  size={32}
+                  thickness={4}
+                  sx={{ color: theme.palette.primary.main }}
+                />
+              </Box>
+            ) : (
+              <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+                {(storageData.usedSpace / 1000).toFixed(1)} GB of {(storageData.maxSpace / 1000).toFixed(1)} GB used
+              </Typography>
+            )}
           </>
         ) : (
-          <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
-            No storage data available
-          </Typography>
+          !isCollapsed && (
+            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+              No storage data available
+            </Typography>
+          )
         )}
       </Box>
     </Drawer>

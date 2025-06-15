@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {Box, Typography, useTheme, CircularProgress} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -17,10 +17,9 @@ const RecentPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { navigateToFolder } = useFileSystem();
-  const isInitialMount = useRef(true);
 
-  // Helper function to determine file color based on file extension
-  const getFileColor = (fileName) => {
+  // Helper function to determine file color based on file extension - memoized with useCallback
+  const getFileColor = useCallback((fileName) => {
     if (!fileName) return '#9bbec7'; // Default to light blue
 
     const extension = fileName.split('.').pop().toLowerCase();
@@ -47,15 +46,15 @@ const RecentPage = () => {
 
     // Default color for other file types
     return '#9bbec7'; // Light blue as default
-  };
+  }, []);
 
-  // Format items to add color property
-  const formatItems = (items) => {
+  // Format items to add color property - memoized with useCallback
+  const formatItems = useCallback((items) => {
     return items.map(item => ({
       ...item,
       color: item.type === 'folder' ? '#f6e27f' : getFileColor(item.name), // Yellow for folders, dynamic for files
     }));
-  };
+  }, [getFileColor]);
 
   // Define fetchItems function with useCallback to ensure it's stable across renders
   const fetchItems = useCallback(async () => {
@@ -75,12 +74,11 @@ const RecentPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [isTokenReady]);
+  }, [isTokenReady, formatItems]);
 
-  // Initial data fetch
+  // Fetch data whenever the component mounts or token becomes ready
   useEffect(() => {
-    if (isTokenReady && isInitialMount.current) {
-      isInitialMount.current = false;
+    if (isTokenReady) {
       fetchItems();
     }
   }, [fetchItems, isTokenReady]);
@@ -99,6 +97,7 @@ const RecentPage = () => {
     window.addEventListener('folderRenamed', handleFileOperation);
     window.addEventListener('folderMoved', handleFileOperation);
     window.addEventListener('folderDeleted', handleFileOperation);
+    window.addEventListener('folderCreated', handleFileOperation);
 
     // Clean up event listeners
     return () => {
@@ -108,6 +107,7 @@ const RecentPage = () => {
       window.removeEventListener('folderRenamed', handleFileOperation);
       window.removeEventListener('folderMoved', handleFileOperation);
       window.removeEventListener('folderDeleted', handleFileOperation);
+      window.removeEventListener('folderCreated', handleFileOperation);
     };
   }, [fetchItems]);
 

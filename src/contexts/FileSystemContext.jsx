@@ -90,6 +90,24 @@ export const FileSystemProvider = ({ children }) => {
       // Handle specific error types
       if (err instanceof NotFoundError) {
         setError('The requested folder was not found. It may have been moved or deleted.');
+        // Redirect to home directory when folder is not found
+        if (idOrPath !== 'root') {
+          console.log('Folder not found, redirecting to home directory');
+          // Navigate to root folder
+          setCurrentFolderId('root');
+          setCurrentFolder(null);
+          setFolderContents([]);
+          setFolderPath([{ id: 'root', name: 'Home' }]);
+          // Fetch root folder contents
+          fetchFolderChildren('root')
+            .then(contents => {
+              setFolderContents(contents);
+              setError(null); // Clear the error message after successfully fetching root contents
+            })
+            .catch(rootError => {
+              console.error('Error fetching root folder contents:', rootError);
+            });
+        }
       } else if (err instanceof UnauthorizedError) {
         setError('You are not authorized to access this folder. Please log in again.');
       } else if (err instanceof BadRequestError) {

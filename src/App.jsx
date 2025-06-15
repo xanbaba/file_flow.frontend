@@ -4,6 +4,7 @@ import './App.css';
 import Layout from './layouts/Layout';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { FileSystemProvider } from './contexts/FileSystemContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import HomePage from './pages/Home/HomePage';
 import StarredPage from './pages/Starred/StarredPage';
 import RecentPage from './pages/Recent/RecentPage';
@@ -33,9 +34,11 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={
                 <AuthTokenProvider>
-                  <FileSystemProvider>
-                    <Layout />
-                  </FileSystemProvider>
+                  <NotificationProvider>
+                    <FileSystemProvider>
+                      <Layout />
+                    </FileSystemProvider>
+                  </NotificationProvider>
                 </AuthTokenProvider>
               }>
                 <Route index element={<HomePage />} />
