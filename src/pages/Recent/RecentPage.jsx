@@ -1,101 +1,160 @@
-import React, { useState } from 'react';
-import {Box, Typography, Button, useTheme} from '@mui/material';
+import React, { useState, useEffect, useCallback } from 'react';
+import {Box, Typography, useTheme, CircularProgress} from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import {
-  CloudUpload as CloudUploadIcon,
-  CreateNewFolder as CreateNewFolderIcon,
   AccessTime as AccessTimeIcon
 } from '@mui/icons-material';
 import FileExplorer from '../../components/FileExplorer/FileExplorer';
-import FileUploadPopup from '../../components/FileUploadPopup/FileUploadPopup';
+import { fetchRecentItems } from '../../services/api';
+import { useFileSystem } from '../../contexts/FileSystemContext';
+import { useAuthToken } from '../../components/Auth/AuthTokenProvider';
 
 const RecentPage = () => {
   const theme = useTheme();
-  const [isUploadPopupOpen, setIsUploadPopupOpen] = useState(false);
+  const navigate = useNavigate();
+  const { isTokenReady } = useAuthToken();
+  const [recentItems, setRecentItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { navigateToFolder } = useFileSystem();
 
-  const handleOpenUploadPopup = () => {
-    setIsUploadPopupOpen(true);
+  // Helper function to determine file color based on file extension - memoized with useCallback
+  const getFileColor = useCallback((fileName) => {
+    if (!fileName) return '#9bbec7'; // Default to light blue
+
+    const extension = fileName.split('.').pop().toLowerCase();
+
+    // Document types
+    if (['doc', 'docx', 'txt', 'pdf', 'rtf'].includes(extension)) {
+      return '#9bbec7'; // Light blue for documents
+    }
+
+    // Spreadsheet types
+    if (['xls', 'xlsx', 'csv'].includes(extension)) {
+      return '#a8b7ab'; // Light green for spreadsheets
+    }
+
+    // Presentation types
+    if (['ppt', 'pptx'].includes(extension)) {
+      return '#f6e27f'; // Yellow for presentations
+    }
+
+    // Image types
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(extension)) {
+      return '#e2c391'; // Beige for images
+    }
+
+    // Default color for other file types
+    return '#9bbec7'; // Light blue as default
+  }, []);
+
+  // Format items to add color property - memoized with useCallback
+  const formatItems = useCallback((items) => {
+    return items.map(item => ({
+      ...item,
+      color: item.type === 'folder' ? '#f6e27f' : getFileColor(item.name), // Yellow for folders, dynamic for files
+    }));
+  }, [getFileColor]);
+
+  // Define fetchItems function with useCallback to ensure it's stable across renders
+  const fetchItems = useCallback(async () => {
+    if (!isTokenReady) {
+      console.warn('Authentication token not ready. Cannot fetch recent items.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const items = await fetchRecentItems();
+      setRecentItems(formatItems(items));
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching recent items:', err);
+      setError('Failed to load recent items');
+    } finally {
+      setLoading(false);
+    }
+  }, [isTokenReady, formatItems]);
+
+  // Fetch data whenever the component mounts or token becomes ready
+  useEffect(() => {
+    if (isTokenReady) {
+      fetchItems();
+    }
+  }, [fetchItems, isTokenReady]);
+
+  // Set up event listener for file operations
+  useEffect(() => {
+    // Function to handle file operation events
+    const handleFileOperation = () => {
+      fetchItems();
+    };
+
+    // Add event listeners for file operations
+    window.addEventListener('fileRenamed', handleFileOperation);
+    window.addEventListener('fileMoved', handleFileOperation);
+    window.addEventListener('fileDeleted', handleFileOperation);
+    window.addEventListener('folderRenamed', handleFileOperation);
+    window.addEventListener('folderMoved', handleFileOperation);
+    window.addEventListener('folderDeleted', handleFileOperation);
+    window.addEventListener('folderCreated', handleFileOperation);
+
+    // Clean up event listeners
+    return () => {
+      window.removeEventListener('fileRenamed', handleFileOperation);
+      window.removeEventListener('fileMoved', handleFileOperation);
+      window.removeEventListener('fileDeleted', handleFileOperation);
+      window.removeEventListener('folderRenamed', handleFileOperation);
+      window.removeEventListener('folderMoved', handleFileOperation);
+      window.removeEventListener('folderDeleted', handleFileOperation);
+      window.removeEventListener('folderCreated', handleFileOperation);
+    };
+  }, [fetchItems]);
+
+  // Handle item click - navigate to folder if it's a folder
+  const handleItemClick = (item) => {
+    if (item.type === 'folder') {
+      // Navigate to the homepage with the folder ID as a URL parameter
+      navigate(`/?folder=${item.id}`);
+    }
+    // For files, you might want to implement a preview or download functionality
   };
-
-  const handleCloseUploadPopup = () => {
-    setIsUploadPopupOpen(false);
-  };
-
-  // Mock data for recent files and folders
-  const recentItems = [
-    {id: 3, name: 'Project Proposal.docx', type: 'file', lastModified: '2023-05-18', color: theme.palette.primary.main},
-    {id: 4, name: 'Budget.xlsx', type: 'file', lastModified: '2023-05-17', color: theme.palette.secondary.main},
-    {id: 5, name: 'Presentation.pptx', type: 'file', lastModified: '2023-05-16', color: theme.palette.custom.yellow},
-    {id: 1, name: 'Documents', type: 'folder', lastModified: '2023-05-15', color: theme.palette.custom.lightGreen},
-    {id: 6, name: 'Marketing Plan', type: 'folder', lastModified: '2023-05-14', color: theme.palette.custom.lightGreen},
-    {id: 7, name: 'Financial Report', type: 'folder', lastModified: '2023-05-12', color: theme.palette.custom.beige},
-    {id: 8, name: 'Meeting Notes.docx', type: 'file', lastModified: '2023-05-11', color: theme.palette.primary.main},
-  ];
-
-  // Extract folders from recentItems for the upload popup
-  const folders = recentItems.filter(item => item.type === 'folder').map(folder => ({
-    id: folder.id,
-    name: folder.name
-  }));
 
   return (
-    <Box sx={{flexGrow: 1}}>
-      {/* Action Bar */}
-      <Box sx={{display: 'flex', justifyContent: 'space-between', mb: 4, alignItems: 'center'}}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <AccessTimeIcon sx={{ color: theme.palette.custom.lightGreen, mr: 1 }} />
+      <Box sx={{flexGrow: 1}}>
+        {/* Action Bar */}
+        <Box sx={{display: 'flex', alignItems: 'center', mb: 4}}>
+          <AccessTimeIcon sx={{color: theme.palette.custom.lightGreen, mr: 1}}/>
           <Typography variant="h4" component="h1" sx={{fontWeight: 600, color: theme.palette.text.primary}}>
             Recent
           </Typography>
         </Box>
-        <Box>
-          <Button
-            variant="contained"
-            startIcon={<CloudUploadIcon/>}
-            onClick={handleOpenUploadPopup}
-            sx={{
-              mr: 2,
-              bgcolor: theme.palette.primary.dark,
-              '&:hover': {
-                bgcolor: theme.palette.primary.main,
-              }
-            }}
-          >
-            Upload
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<CreateNewFolderIcon/>}
-            sx={{
-              borderColor: theme.palette.secondary.dark,
-              transition: 'all 0.15s ease-in-out',
-              color: theme.palette.secondary.dark,
-              '&:hover': {
-                borderColor: theme.palette.secondary.main,
-                color: theme.palette.secondary.main,
-                bgcolor: 'rgba(226, 195, 145, 0.04)',
-              }
-            }}
-          >
-            New Folder
-          </Button>
-        </Box>
+
+        {/* Loading State */}
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <Typography color="error" sx={{ my: 2 }}>
+            {error}
+          </Typography>
+        )}
+
+        {/* Recent Files Section */}
+        {!loading && !error && (
+          <FileExplorer
+              title=""
+              items={recentItems}
+              showViewToggle={true}
+              defaultViewMode="list"
+              onItemClick={handleItemClick}
+          />
+        )}
       </Box>
-
-      {/* Recent Files Section */}
-      <FileExplorer
-        title="Recent Files"
-        items={recentItems}
-        showViewToggle={true}
-        defaultViewMode="list"
-      />
-
-      {/* File Upload Popup */}
-      <FileUploadPopup
-        open={isUploadPopupOpen}
-        onClose={handleCloseUploadPopup}
-        folders={folders}
-      />
-    </Box>
   );
 };
 

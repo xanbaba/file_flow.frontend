@@ -1,14 +1,18 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Auth0Provider } from '@auth0/auth0-react';
 import './App.css';
-import theme from './theme';
 import Layout from './layouts/Layout';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { FileSystemProvider } from './contexts/FileSystemContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import HomePage from './pages/Home/HomePage';
 import StarredPage from './pages/Starred/StarredPage';
 import RecentPage from './pages/Recent/RecentPage';
 import TrashPage from './pages/Trash/TrashPage';
+import LoginPage from './pages/Login/LoginPage';
+import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { auth0Config } from './config';
+import AuthTokenProvider from './components/Auth/AuthTokenProvider';
 
 function App() {
   return (
@@ -17,20 +21,36 @@ function App() {
       clientId={auth0Config.clientId}
       authorizationParams={{
         redirect_uri: auth0Config.redirectUri,
-        audience: auth0Config.audience,
-        scope: auth0Config.scope
+        audience: auth0Config.audience
       }}
     >
-      <ThemeProvider theme={theme}>
+      <ThemeProvider>
         <Router>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/starred" element={<StarredPage />} />
-              <Route path="/recent" element={<RecentPage />} />
-              <Route path="/trash" element={<TrashPage />} />
-            </Routes>
-          </Layout>
+          <Routes>
+            {/* Public route for login */}
+            <Route path="/login" element={<LoginPage />} />
+
+            {/* Protected routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={
+                <AuthTokenProvider>
+                  <NotificationProvider>
+                    <FileSystemProvider>
+                      <Layout />
+                    </FileSystemProvider>
+                  </NotificationProvider>
+                </AuthTokenProvider>
+              }>
+                <Route index element={<HomePage />} />
+                <Route path="/starred" element={<StarredPage />} />
+                <Route path="/recent" element={<RecentPage />} />
+                <Route path="/trash" element={<TrashPage />} />
+              </Route>
+            </Route>
+
+            {/* Redirect any unmatched routes to login */}
+            <Route path="*" element={<Navigate to="/login" />} />
+          </Routes>
         </Router>
       </ThemeProvider>
     </Auth0Provider>

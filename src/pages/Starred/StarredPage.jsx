@@ -1,98 +1,164 @@
-import React, { useState } from 'react';
-import {Box, Typography, Button, useTheme} from '@mui/material';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {Box, Typography, useTheme, CircularProgress} from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import {
-  CloudUpload as CloudUploadIcon,
-  CreateNewFolder as CreateNewFolderIcon,
   Star as StarIcon
 } from '@mui/icons-material';
 import FileExplorer from '../../components/FileExplorer/FileExplorer';
-import FileUploadPopup from '../../components/FileUploadPopup/FileUploadPopup';
+import { fetchStarredItems } from '../../services/api';
+import { useFileSystem } from '../../contexts/FileSystemContext';
+import { useAuthToken } from '../../components/Auth/AuthTokenProvider';
 
 const StarredPage = () => {
   const theme = useTheme();
-  const [isUploadPopupOpen, setIsUploadPopupOpen] = useState(false);
+  const navigate = useNavigate();
+  const { isTokenReady } = useAuthToken();
+  const [starredItems, setStarredItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { navigateToFolder } = useFileSystem();
+  const isInitialMount = useRef(true);
 
-  const handleOpenUploadPopup = () => {
-    setIsUploadPopupOpen(true);
+  // Helper function to determine file color based on file extension
+  const getFileColor = (fileName) => {
+    if (!fileName) return '#9bbec7'; // Default to light blue
+
+    const extension = fileName.split('.').pop().toLowerCase();
+
+    // Document types
+    if (['doc', 'docx', 'txt', 'pdf', 'rtf'].includes(extension)) {
+      return '#9bbec7'; // Light blue for documents
+    }
+
+    // Spreadsheet types
+    if (['xls', 'xlsx', 'csv'].includes(extension)) {
+      return '#a8b7ab'; // Light green for spreadsheets
+    }
+
+    // Presentation types
+    if (['ppt', 'pptx'].includes(extension)) {
+      return '#f6e27f'; // Yellow for presentations
+    }
+
+    // Image types
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(extension)) {
+      return '#e2c391'; // Beige for images
+    }
+
+    // Default color for other file types
+    return '#9bbec7'; // Light blue as default
   };
 
-  const handleCloseUploadPopup = () => {
-    setIsUploadPopupOpen(false);
+  // Format items to add color property
+  const formatItems = (items) => {
+    return items.map(item => ({
+      ...item,
+      color: item.type === 'folder' ? '#f6e27f' : getFileColor(item.name), // Yellow for folders, dynamic for files
+    }));
   };
 
-  // Mock data for starred files and folders
-  const starredItems = [
-    {id: 1, name: 'Documents', type: 'folder', lastModified: '2023-05-15', color: theme.palette.custom.lightGreen, starred: true},
-    {id: 3, name: 'Project Proposal.docx', type: 'file', lastModified: '2023-05-18', color: theme.palette.primary.main, starred: true},
-    {id: 5, name: 'Presentation.pptx', type: 'file', lastModified: '2023-05-16', color: theme.palette.custom.yellow, starred: true},
-    {id: 8, name: 'Meeting Notes.docx', type: 'file', lastModified: '2023-05-11', color: theme.palette.primary.main, starred: true},
-  ];
+  // Define fetchItems function with useCallback to ensure it's stable across renders
+  const fetchItems = useCallback(async () => {
+    if (!isTokenReady) {
+      console.warn('Authentication token not ready. Cannot fetch starred items.');
+      return;
+    }
 
-  // Extract folders from starredItems for the upload popup
-  const folders = starredItems.filter(item => item.type === 'folder').map(folder => ({
-    id: folder.id,
-    name: folder.name
-  }));
+    try {
+      setLoading(true);
+      const items = await fetchStarredItems();
+
+      // Format items to add color property
+      setStarredItems(formatItems(items));
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching starred items:', err);
+      setError('Failed to load starred items');
+    } finally {
+      setLoading(false);
+    }
+  }, [isTokenReady]);
+
+  // Initial data fetch
+  useEffect(() => {
+    if (isTokenReady && isInitialMount.current) {
+      isInitialMount.current = false;
+      fetchItems();
+    }
+  }, [fetchItems, isTokenReady]);
+
+  // Set up event listener for file operations
+  useEffect(() => {
+    // Function to handle file operation events
+    const handleFileOperation = () => {
+      fetchItems();
+    };
+
+    // Add event listeners for file operations
+    window.addEventListener('fileRenamed', handleFileOperation);
+    window.addEventListener('fileMoved', handleFileOperation);
+    window.addEventListener('fileDeleted', handleFileOperation);
+    window.addEventListener('folderRenamed', handleFileOperation);
+    window.addEventListener('folderMoved', handleFileOperation);
+    window.addEventListener('folderDeleted', handleFileOperation);
+    window.addEventListener('itemStarredStatusChanged', handleFileOperation);
+
+    // Clean up event listeners
+    return () => {
+      window.removeEventListener('fileRenamed', handleFileOperation);
+      window.removeEventListener('fileMoved', handleFileOperation);
+      window.removeEventListener('fileDeleted', handleFileOperation);
+      window.removeEventListener('folderRenamed', handleFileOperation);
+      window.removeEventListener('folderMoved', handleFileOperation);
+      window.removeEventListener('folderDeleted', handleFileOperation);
+      window.removeEventListener('itemStarredStatusChanged', handleFileOperation);
+    };
+  }, [fetchItems]);
+
+  // Handle item click - navigate to folder if it's a folder
+  const handleItemClick = (item) => {
+    if (item.type === 'folder') {
+      // Navigate to the homepage with the folder ID as a URL parameter
+      navigate(`/?folder=${item.id}`);
+    }
+    // For files, you might want to implement a preview or download functionality
+  };
 
   return (
-    <Box sx={{flexGrow: 1}}>
-      {/* Action Bar */}
-      <Box sx={{display: 'flex', justifyContent: 'space-between', mb: 4, alignItems: 'center'}}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <StarIcon sx={{ color: theme.palette.warning.main, mr: 1 }} />
+      <Box sx={{flexGrow: 1}}>
+        {/* Action Bar */}
+        <Box sx={{display: 'flex', alignItems: 'center', mb: 4}}>
+          <StarIcon sx={{color: theme.palette.warning.main, mr: 1}}/>
           <Typography variant="h4" component="h1" sx={{fontWeight: 600, color: theme.palette.text.primary}}>
             Starred
           </Typography>
         </Box>
-        <Box>
-          <Button
-            variant="contained"
-            startIcon={<CloudUploadIcon/>}
-            onClick={handleOpenUploadPopup}
-            sx={{
-              mr: 2,
-              bgcolor: theme.palette.primary.dark,
-              '&:hover': {
-                bgcolor: theme.palette.primary.main,
-              }
-            }}
-          >
-            Upload
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<CreateNewFolderIcon/>}
-            sx={{
-              borderColor: theme.palette.secondary.dark,
-              transition: 'all 0.15s ease-in-out',
-              color: theme.palette.secondary.dark,
-              '&:hover': {
-                borderColor: theme.palette.secondary.main,
-                color: theme.palette.secondary.main,
-                bgcolor: 'rgba(226, 195, 145, 0.04)',
-              }
-            }}
-          >
-            New Folder
-          </Button>
-        </Box>
+
+        {/* Loading State */}
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <Typography color="error" sx={{ my: 2 }}>
+            {error}
+          </Typography>
+        )}
+
+        {/* Starred Files Section */}
+        {!loading && !error && (
+          <FileExplorer
+              title=""
+              items={starredItems}
+              showViewToggle={true}
+              defaultViewMode="list"
+              onItemClick={handleItemClick}
+          />
+        )}
       </Box>
-
-      {/* Starred Files Section */}
-      <FileExplorer
-        title="Starred Files"
-        items={starredItems}
-        showViewToggle={true}
-        defaultViewMode="list"
-      />
-
-      {/* File Upload Popup */}
-      <FileUploadPopup
-        open={isUploadPopupOpen}
-        onClose={handleCloseUploadPopup}
-        folders={folders}
-      />
-    </Box>
   );
 };
 

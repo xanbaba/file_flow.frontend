@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { 
   Box, 
   Typography, 
@@ -14,27 +15,35 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Alert
+  Alert,
+  Snackbar
 } from '@mui/material';
 import { 
   LockOutlined as LockIcon,
   DeleteOutline as DeleteIcon,
-  Brightness4 as ThemeIcon
+  Brightness4 as ThemeIcon,
+  DarkMode as DarkModeIcon,
+  LightMode as LightModeIcon
 } from '@mui/icons-material';
+import { useThemeContext } from '../../contexts/ThemeContext';
 
 const SettingsSection = () => {
   const theme = useTheme();
-  const [darkMode, setDarkMode] = useState(false);
+  const { themeMode, toggleTheme } = useThemeContext();
+  const { logout } = useAuth0();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const handleThemeChange = (event) => {
-    setDarkMode(event.target.checked);
-    // In a real app, this would trigger a theme change in the app
+  const handleThemeChange = () => {
+    toggleTheme();
   };
 
   const handleDeleteAccount = () => {
     // In a real app, this would call an API to delete the account
     setDeleteDialogOpen(false);
+  };
+
+  const handleLogout = () => {
+    logout({ returnTo: window.location.origin });
   };
 
   return (
@@ -70,29 +79,9 @@ const SettingsSection = () => {
             Security
           </Typography>
         </Box>
-        
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
-            Password
-          </Typography>
-          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-            Change your password to keep your account secure.
-          </Typography>
-          <Button 
-            variant="outlined" 
-            color="primary"
-            sx={{ 
-              borderRadius: '10px',
-              textTransform: 'none',
-              px: 3
-            }}
-          >
-            Change Password
-          </Button>
-        </Box>
-        
+
         <Divider sx={{ my: 3, opacity: 0.6 }} />
-        
+
         <Box>
           <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
             Session
@@ -103,6 +92,7 @@ const SettingsSection = () => {
           <Button 
             variant="outlined" 
             color="error"
+            onClick={handleLogout}
             sx={{ 
               borderRadius: '10px',
               textTransform: 'none',
@@ -113,7 +103,7 @@ const SettingsSection = () => {
           </Button>
         </Box>
       </Paper>
-      
+
       {/* Account Section */}
       <Paper 
         elevation={0} 
@@ -145,7 +135,7 @@ const SettingsSection = () => {
             Account
           </Typography>
         </Box>
-        
+
         <Box>
           <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
             Delete Account
@@ -170,7 +160,7 @@ const SettingsSection = () => {
           </Button>
         </Box>
       </Paper>
-      
+
       {/* Preferences Section */}
       <Paper 
         elevation={0} 
@@ -201,7 +191,7 @@ const SettingsSection = () => {
             Preferences
           </Typography>
         </Box>
-        
+
         <Box>
           <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
             Theme
@@ -209,19 +199,26 @@ const SettingsSection = () => {
           <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
             Switch between light and dark themes.
           </Typography>
-          <FormControlLabel
-            control={
-              <Switch 
-                checked={darkMode} 
-                onChange={handleThemeChange} 
-                color="primary" 
-              />
-            }
-            label={darkMode ? "Dark Mode" : "Light Mode"}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              {themeMode === 'dark' ? (
+                <DarkModeIcon sx={{ mr: 1, color: theme.palette.text.secondary }} />
+              ) : (
+                <LightModeIcon sx={{ mr: 1, color: theme.palette.text.secondary }} />
+              )}
+              <Typography>
+                {themeMode === 'dark' ? "Dark Mode" : "Light Mode"}
+              </Typography>
+            </Box>
+            <Switch 
+              checked={themeMode === 'dark'} 
+              onChange={handleThemeChange} 
+              color="primary" 
+            />
+          </Box>
         </Box>
       </Paper>
-      
+
       {/* Delete Account Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}

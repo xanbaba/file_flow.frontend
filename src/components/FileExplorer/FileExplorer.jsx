@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { Box, Typography, Paper, Grid, Divider, useTheme, Link } from '@mui/material';
+import React, { useState, useMemo } from 'react';
+import { Box, Typography, Paper, Divider, useTheme, Link } from '@mui/material';
 import { NavigateNext as NavigateNextIcon } from '@mui/icons-material';
 import FileItem from './FileItem';
 import ViewToggle from './ViewToggle';
+
+import {useFileSystem} from "../../contexts/FileSystemContext.jsx";
 
 const FileExplorer = ({ 
   title, 
@@ -12,20 +14,41 @@ const FileExplorer = ({
   showMoreLink = false,
   onShowMoreClick,
   maxItems = null,
-  horizontalScroll = false
+  horizontalScroll = false,
+  isTrash = false,
+  onItemClick
 }) => {
   const theme = useTheme();
-  const [viewMode, setViewMode] = useState(defaultViewMode);
+  const [viewMode, setViewMode] = useState(() => {
+    // Try to get the view mode from localStorage, or use the default
+    const savedViewMode = localStorage.getItem('fileExplorerViewMode');
+    return savedViewMode || defaultViewMode;
+  });
 
-  const displayItems = maxItems ? items.slice(0, maxItems) : items;
+  const displayItems = useMemo(() => {
+    return maxItems ? items.slice(0, maxItems) : items;
+  }, [items, maxItems]);
 
   const handleViewModeChange = (mode) => {
     setViewMode(mode);
+    // Save the view mode to localStorage
+    localStorage.setItem('fileExplorerViewMode', mode);
   };
 
+  const { navigateToFolder } = useFileSystem();
+
   const handleItemClick = (item) => {
-    console.log('Item clicked:', item);
-    // Handle item click (e.g., navigate to folder, open file)
+    // If a custom click handler is provided, use it
+    if (onItemClick) {
+      onItemClick(item);
+      return;
+    }
+
+    // Default behavior: navigate to folder if the item is a folder
+    if (item.type === 'folder') {
+      navigateToFolder(item.id);
+    }
+    // For files, you might want to implement a preview or download functionality
   };
 
   return (
@@ -96,6 +119,7 @@ const FileExplorer = ({
                 item={item} 
                 viewMode="grid" 
                 onClick={() => handleItemClick(item)} 
+                isTrash={isTrash}
               />
             </Box>
           ))}
@@ -119,6 +143,7 @@ const FileExplorer = ({
                 item={item} 
                 viewMode="grid" 
                 onClick={() => handleItemClick(item)} 
+                isTrash={isTrash}
               />
             </Box>
           ))}
@@ -141,6 +166,7 @@ const FileExplorer = ({
                 item={item} 
                 viewMode="list" 
                 onClick={() => handleItemClick(item)} 
+                isTrash={isTrash}
               />
               {index < displayItems.length - 1 && <Divider sx={{ opacity: 0.5 }} />}
             </React.Fragment>
@@ -151,4 +177,4 @@ const FileExplorer = ({
   );
 };
 
-export default FileExplorer;
+export default React.memo(FileExplorer);
