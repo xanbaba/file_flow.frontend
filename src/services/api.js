@@ -620,3 +620,170 @@ export const restoreFolder = async (folderId) => {
     throw error;
   }
 };
+
+/**
+ * Uploads a file to the specified folder
+ * @param {File} file - The file to upload
+ * @param {string|null} targetFolderId - The ID of the folder to upload to. If null, uploads to root.
+ * @returns {Promise<Object>} - Promise resolving to the uploaded file object
+ */
+export const uploadFile = async (file, targetFolderId = null) => {
+  try {
+    const token = await getAuthToken();
+    const headers = {
+      'Content-Type': 'application/octet-stream',
+      'X-File-Name': file.name,
+      'X-File-Size': file.size
+    };
+
+    if (targetFolderId) {
+      headers['X-Target-Folder-Id'] = targetFolderId;
+    }
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${apiConfig.baseUrl}/api/files`, {
+      method: 'POST',
+      headers,
+      body: file // Send the file as a raw binary stream
+    });
+
+    if (!response.ok) {
+      let errorData = null;
+
+      try {
+        errorData = await response.json();
+      } catch {
+        // If parsing fails, continue with null errorData
+      }
+
+      const errorMessage = errorData?.message || response.statusText;
+
+      // Handle specific status codes
+      switch (response.status) {
+        case 400:
+          throw new BadRequestError(errorMessage, errorData);
+        case 401:
+          throw new UnauthorizedError(errorMessage, errorData);
+        case 404:
+          throw new NotFoundError(errorMessage, errorData);
+        case 409:
+          throw new ConflictError(errorMessage, errorData);
+        default:
+          throw new ApiError(errorMessage, response.status, errorData);
+      }
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return await response.json();
+    } else {
+      return {};
+    }
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw error;
+  }
+};
+
+/**
+ * Downloads a file
+ * @param {string} fileId - The ID of the file to download
+ * @returns {Promise<Blob>} - Promise resolving to the file blob
+ */
+export const downloadFile = async (fileId) => {
+  try {
+    const token = await getAuthToken();
+    const headers = {};
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${apiConfig.baseUrl}/api/files/${fileId}/content`, {
+      method: 'GET',
+      headers
+    });
+
+    if (!response.ok) {
+      let errorData = null;
+
+      try {
+        errorData = await response.json();
+      } catch {
+        // If parsing fails, continue with null errorData
+      }
+
+      const errorMessage = errorData?.message || response.statusText;
+
+      // Handle specific status codes
+      switch (response.status) {
+        case 400:
+          throw new BadRequestError(errorMessage, errorData);
+        case 401:
+          throw new UnauthorizedError(errorMessage, errorData);
+        case 404:
+          throw new NotFoundError(errorMessage, errorData);
+        default:
+          throw new ApiError(errorMessage, response.status, errorData);
+      }
+    }
+
+    return await response.blob();
+  } catch (error) {
+    console.error('Error downloading file:', error);
+    throw error;
+  }
+};
+
+/**
+ * Gets a preview of a file
+ * @param {string} fileId - The ID of the file to preview
+ * @returns {Promise<Blob>} - Promise resolving to the preview blob
+ */
+export const getFilePreview = async (fileId) => {
+  try {
+    const token = await getAuthToken();
+    const headers = {};
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${apiConfig.baseUrl}/api/files/${fileId}/content`, {
+      method: 'GET',
+      headers
+    });
+
+    if (!response.ok) {
+      let errorData = null;
+
+      try {
+        errorData = await response.json();
+      } catch {
+        // If parsing fails, continue with null errorData
+      }
+
+      const errorMessage = errorData?.message || response.statusText;
+
+      // Handle specific status codes
+      switch (response.status) {
+        case 400:
+          throw new BadRequestError(errorMessage, errorData);
+        case 401:
+          throw new UnauthorizedError(errorMessage, errorData);
+        case 404:
+          throw new NotFoundError(errorMessage, errorData);
+        default:
+          throw new ApiError(errorMessage, response.status, errorData);
+      }
+    }
+
+    return await response.blob();
+  } catch (error) {
+    console.error('Error getting file preview:', error);
+    throw error;
+  }
+};

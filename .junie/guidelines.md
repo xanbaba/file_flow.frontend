@@ -689,14 +689,14 @@
         }
       }
     },
-    "/api/files/{id}/download": {
+    "/api/files/{id}/content": {
       "get": {
         "tags": [
           "FileFlow.Api"
         ],
-        "summary": "Downloads a file's content",
-        "description": "Provides the actual content of a file for download with appropriate content type and filename.\n\n### Route Parameters\n- **id** (Guid): The unique identifier of the file to download.\n\n### Behavior\n- Retrieves file metadata to determine the name and content type\n- Streams the file content with range processing enabled for supporting large files\n- Only allows downloading files that belong to the authenticated user\n- Can download files even if they are in trash\n\n### Response\nReturns a stream containing the file content with the appropriate MIME type and original filename.",
-        "operationId": "DownloadFileEndpoint",
+        "summary": "Gets content of the file",
+        "description": "Provides the actual content of a file with appropriate content type and filename.\n\n### Route Parameters\n- **id** (Guid): The unique identifier of the file.\n\n### Behavior\n- Retrieves file metadata to determine the name and content type\n- Streams the file content with range processing enabled for supporting large files\n- Only allows accessing files that belong to the authenticated user\n\n### Response\nReturns a stream containing the file content with the appropriate MIME type and original filename.",
+        "operationId": "GetFileContentEndpoint",
         "parameters": [
           {
             "name": "id",
@@ -917,53 +917,6 @@
         }
       }
     },
-    "/api/files/{id}/preview": {
-      "get": {
-        "tags": [
-          "FileFlow.Api"
-        ],
-        "summary": "Generates a preview of a file",
-        "description": "Provides a preview of the file content, optimized for in-browser viewing.\n\n### Route Parameters\n- **id** (Guid): The unique identifier of the file to preview.\n\n### Behavior\n- For images: Returns a possibly resized or compressed version for faster viewing\n- For documents: May return a rendered preview or first few pages\n- For other file types: May return a representation or thumbnail\n- Only allows previewing files that belong to the authenticated user\n- Can preview files even if they are in trash\n\n### Response\nReturns the preview content with appropriate content type headers for browser rendering.",
-        "operationId": "PreviewFileEndpoint",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorMessage"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      }
-    },
     "/api/files/{id}/restore": {
       "post": {
         "tags": [
@@ -1011,19 +964,70 @@
         "tags": [
           "FileFlow.Api"
         ],
-        "summary": "Uploads a new file",
-        "description": "Uploads a new file to the specified folder path.\n\n### Request Form Data\n- **File** (form file): The file to upload\n- **TargetFolderId** (string, optional): The id of the folder where the file should be uploaded. If not specified, root level will be used\n\n### Behavior\n- Validates the uploaded file (size, type, etc.)\n- Checks if the target folder exists and is accessible to the user\n- Stores the file content in the system\n- Creates metadata entry for the file with appropriate file category based on extension\n- If a file with the same name already exists in the target location, may rename the new file automatically\n- Updates user's storage usage statistics\n\n### Response\nReturns a FileFolderResponse object containing metadata about the newly uploaded file, including its assigned ID and path.\nReturns 400 Bad Request if the file is invalid or exceeds user's storage quota.\nReturns 404 Not Found if the target folder doesn't exist.",
+        "summary": "Upload a file via raw binary stream",
+        "description": "The file is sent as a binary stream in the body.",
         "operationId": "UploadFileEndpoint",
+        "parameters": [
+          {
+            "name": "X-File-Name",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Target-Folder-Id",
+            "in": "header",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-File-Size",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "X-File-Name",
+            "in": "header",
+            "description": "The name to save the uploaded file as",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-File-Size",
+            "in": "header",
+            "description": "Size of a file in bytes",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "X-Target-Folder-Id",
+            "in": "header",
+            "description": "(string, optional): The id of the folder where the file should be uploaded. If not specified, root level will be used",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
-            "multipart/form-data": {
+            "application/octet-stream": {
               "schema": {
-                "$ref": "#/components/schemas/UploadFileForm"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/UploadFileForm"
+                "type": "string",
+                "format": "binary"
               }
             }
           },
@@ -1181,25 +1185,6 @@
         },
         "additionalProperties": false
       },
-      "UploadFileForm": {
-        "required": [
-          "file"
-        ],
-        "type": "object",
-        "properties": {
-          "file": {
-            "type": "string",
-            "format": "binary",
-            "nullable": true
-          },
-          "targetFolderId": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "UserStorageResponse": {
         "type": "object",
         "properties": {
@@ -1208,28 +1193,28 @@
             "format": "uuid"
           },
           "maxSpace": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           },
           "usedSpace": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           },
           "documents": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           },
           "images": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           },
           "videos": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           },
           "other": {
-            "type": "integer",
-            "format": "int32"
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false

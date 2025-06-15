@@ -71,21 +71,23 @@ const Sidebar = () => {
   const [error, setError] = useState(null);
   const isInitialMount = useRef(true);
 
-  useEffect(() => {
-    const getStorageData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchUserStorage();
-        setStorageData(data);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching storage data:', err);
-        setError('Failed to load storage information');
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Function to fetch storage data
+  const getStorageData = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchUserStorage();
+      setStorageData(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching storage data:', err);
+      setError('Failed to load storage information');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Fetch storage data on initial mount
+  useEffect(() => {
     if (isTokenReady && isInitialMount.current) {
       isInitialMount.current = false;
       getStorageData();
@@ -93,6 +95,23 @@ const Sidebar = () => {
       // Optionally refresh data when token becomes ready but not on initial mount
       // This is useful if the token expires and is refreshed
     }
+  }, [isTokenReady]);
+
+  // Listen for storage update events
+  useEffect(() => {
+    const handleStorageUpdate = () => {
+      if (isTokenReady) {
+        getStorageData();
+      }
+    };
+
+    // Add event listener for storage updates
+    window.addEventListener('storageInfoUpdated', handleStorageUpdate);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('storageInfoUpdated', handleStorageUpdate);
+    };
   }, [isTokenReady]);
 
   return (

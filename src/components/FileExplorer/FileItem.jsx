@@ -11,6 +11,7 @@ import FileContextMenu from './FileContextMenu';
 import RenameDialog from './RenameDialog';
 import MoveToDialog from './MoveToDialog';
 import FileUploadPopup from '../FileUploadPopup/FileUploadPopup';
+import FilePreviewPopup from '../FilePreviewPopup/FilePreviewPopup';
 import ConfirmationPopup from '../ConfirmationPopup/ConfirmationPopup';
 import { 
   renameFile, 
@@ -23,12 +24,13 @@ import {
   permanentDeleteFile,
   permanentDeleteFolder,
   restoreFile,
-  restoreFolder
+  restoreFolder,
+  downloadFile
 } from '../../services/api';
 import { useFileSystem } from '../../contexts/FileSystemContext';
 import { useAuthToken } from '../Auth/AuthTokenProvider';
 
-const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
+const FileItem = ({ item, viewMode, onClick: externalOnClick, isTrash = false }) => {
   const theme = useTheme();
   const { refreshCurrentFolder } = useFileSystem();
   const { isTokenReady } = useAuthToken();
@@ -45,16 +47,12 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [isUploadPopupOpen, setIsUploadPopupOpen] = useState(false);
+  const [isPreviewPopupOpen, setIsPreviewPopupOpen] = useState(false);
   const [permanentDeleteConfirmOpen, setPermanentDeleteConfirmOpen] = useState(false);
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
 
-  // Mock data for folders (in a real app, this would come from props or a context)
-  const folders = [
-    { id: 1, name: 'Documents' },
-    { id: 2, name: 'Images' },
-    { id: 6, name: 'Marketing Plan' },
-    { id: 7, name: 'Financial Report' }
-  ];
+  // Use the current folder as the default destination
+  const [selectedFolders, setSelectedFolders] = useState([]);
 
   const handleStarClick = async (e) => {
     e.stopPropagation();
@@ -210,19 +208,68 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
     }
   };
 
-  const handleDownload = () => {
-    console.log(`Downloading ${item.name}`);
-    // Here you would typically call a function to download the file
+  const handleDownload = async () => {
+    if (!isTokenReady) {
+      console.warn('Authentication token not ready. Cannot download file.');
+      return;
+    }
+
+    try {
+      const blob = await downloadFile(item.id);
+      const url = URL.createObjectURL(blob);
+
+      // Create a temporary link element and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = item.name;
+      document.body.appendChild(link);
+      link.click();
+
+      // Clean up
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.log(`Successfully downloaded ${item.name}`);
+    } catch (error) {
+      console.error(`Error downloading ${item.name}:`, error);
+      // Here you would typically show an error message to the user
+    }
   };
 
   const handleUploadTo = () => {
     console.log(`Uploading to ${item.name}`);
+    // Set the current folder as the default destination
+    setSelectedFolders([{
+      id: item.id,
+      name: item.name
+    }]);
     // Open the upload popup
     setIsUploadPopupOpen(true);
   };
 
   const handleCloseUploadPopup = () => {
     setIsUploadPopupOpen(false);
+  };
+
+  const handleClosePreviewPopup = () => {
+    setIsPreviewPopupOpen(false);
+  };
+
+  const handleFilePreview = () => {
+    setIsPreviewPopupOpen(true);
+  };
+
+  // Handle item click - navigate to folder if it's a folder, show preview if it's a file
+  const handleItemClick = () => {
+    if (item.type === 'folder') {
+      // Call the external onClick handler for folders
+      if (externalOnClick) {
+        externalOnClick(item);
+      }
+    } else {
+      // For files, show the preview popup
+      handleFilePreview();
+    }
   };
 
   const handlePermanentDelete = () => {
@@ -248,6 +295,9 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
       console.log(`Successfully permanently deleted ${item.name}`);
       // Refresh the folder contents to reflect the changes
       refreshCurrentFolder();
+
+      // Dispatch event to update storage info in sidebar
+      window.dispatchEvent(new Event('storageInfoUpdated'));
     } catch (error) {
       console.error(`Error permanently deleting ${item.type}:`, error);
       // Here you would typically show an error message to the user
@@ -304,7 +354,7 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
           },
           justifyContent: 'space-between',
         }}
-        onClick={onClick}
+        onClick={handleItemClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onContextMenu={handleContextMenu}
@@ -405,6 +455,7 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
           isTrash={isTrash}
           OnPermanentDelete={handlePermanentDelete}
           OnRestore={handleRestore}
+          itemName={item.name}
         />
 
         {/* Dialogs */}
@@ -428,7 +479,7 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
         <FileUploadPopup
           open={isUploadPopupOpen}
           onClose={handleCloseUploadPopup}
-          folders={folders}
+          folders={selectedFolders}
         />
 
         {/* Confirmation Popup for Permanent Delete */}
@@ -452,6 +503,13 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
           confirmButtonText="Restore"
           severity="info"
         />
+
+        {/* File Preview Popup */}
+        <FilePreviewPopup
+          open={isPreviewPopupOpen}
+          onClose={handleClosePreviewPopup}
+          file={item}
+        />
       </Paper>
     );
   } else {
@@ -470,7 +528,7 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
           borderRadius: '8px',
           mx: 0.5
         }}
-        onClick={onClick}
+        onClick={handleItemClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onContextMenu={handleContextMenu}
@@ -560,6 +618,7 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
           isTrash={isTrash}
           OnPermanentDelete={handlePermanentDelete}
           OnRestore={handleRestore}
+          itemName={item.name}
         />
 
         {/* Dialogs */}
@@ -583,7 +642,7 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
         <FileUploadPopup
           open={isUploadPopupOpen}
           onClose={handleCloseUploadPopup}
-          folders={folders}
+          folders={selectedFolders}
         />
 
         {/* Confirmation Popup for Permanent Delete */}
@@ -606,6 +665,13 @@ const FileItem = ({ item, viewMode, onClick, isTrash = false }) => {
           message={`Are you sure you want to restore this ${item.type} from trash?`}
           confirmButtonText="Restore"
           severity="info"
+        />
+
+        {/* File Preview Popup */}
+        <FilePreviewPopup
+          open={isPreviewPopupOpen}
+          onClose={handleClosePreviewPopup}
+          file={item}
         />
       </Box>
     );

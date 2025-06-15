@@ -90,6 +90,9 @@ const TrashPage = () => {
       await emptyTrash();
       setTrashItems([]);
       console.log('Successfully emptied trash');
+
+      // Dispatch event to update storage info in sidebar
+      window.dispatchEvent(new Event('storageInfoUpdated'));
     } catch (error) {
       console.error('Error emptying trash:', error);
       setError('Failed to empty trash. Please try again later.');

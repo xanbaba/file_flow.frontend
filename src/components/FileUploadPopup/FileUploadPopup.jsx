@@ -12,7 +12,9 @@ import {
   Divider, 
   useTheme, 
   alpha,
-  Paper
+  Paper,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import { 
   Close as CloseIcon,
@@ -22,12 +24,19 @@ import {
 } from '@mui/icons-material';
 import { useDropzone } from 'react-dropzone';
 import FolderSelector from '../FolderSelector/FolderSelector';
+import { uploadFile } from '../../services/api';
+import { useAuthToken } from '../Auth/AuthTokenProvider';
+import { useFileSystem } from '../../contexts/FileSystemContext';
 
 const FileUploadPopup = ({ open, onClose, folders }) => {
   const theme = useTheme();
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
   const dialogRef = useRef(null);
+  const { isTokenReady } = useAuthToken();
+  const { refreshCurrentFolder } = useFileSystem();
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
 
   // Use effect to stop propagation of all events from the dialog
   useEffect(() => {
@@ -98,12 +107,38 @@ const FileUploadPopup = ({ open, onClose, folders }) => {
   };
 
   // Handle upload
-  const handleUpload = () => {
-    // Here you would typically call an API to upload the files
-    console.log('Uploading files:', uploadedFiles);
-    // Reset state and close popup after upload
-    setUploadedFiles([]);
-    onClose();
+  const handleUpload = async () => {
+    if (!isTokenReady) {
+      setUploadError('Authentication token not ready. Please try again later.');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      // Upload files one by one
+      const uploadPromises = uploadedFiles.map(fileData => 
+        uploadFile(fileData.file, fileData.folder)
+      );
+
+      await Promise.all(uploadPromises);
+
+      // Refresh the folder contents to reflect the changes
+      refreshCurrentFolder();
+
+      // Dispatch event to update storage info in sidebar
+      window.dispatchEvent(new Event('storageInfoUpdated'));
+
+      // Reset state and close popup after successful upload
+      setUploadedFiles([]);
+      onClose();
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      setUploadError(error.message || 'Failed to upload files. Please try again.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   // Format file size
@@ -275,22 +310,32 @@ const FileUploadPopup = ({ open, onClose, folders }) => {
           )}
         </DialogContent>
 
+        {/* Error message */}
+        {uploadError && (
+          <Box sx={{ px: 3, pb: 2 }}>
+            <Alert severity="error" sx={{ width: '100%' }}>
+              {uploadError}
+            </Alert>
+          </Box>
+        )}
+
         {/* Footer */}
         <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end', borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}` }}>
           <Button 
             variant="outlined" 
             onClick={onClose} 
             sx={{ mr: 2 }}
+            disabled={uploading}
           >
             Cancel
           </Button>
           <Button 
             variant="contained" 
             onClick={handleUpload}
-            disabled={uploadedFiles.length === 0}
-            startIcon={<CloudUploadIcon />}
+            disabled={uploadedFiles.length === 0 || uploading}
+            startIcon={uploading ? <CircularProgress size={20} color="inherit" /> : <CloudUploadIcon />}
           >
-            Upload
+            {uploading ? 'Uploading...' : 'Upload'}
           </Button>
         </Box>
       </Box>

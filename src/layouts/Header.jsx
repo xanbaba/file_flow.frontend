@@ -41,7 +41,7 @@ const Header = () => {
   const theme = useTheme();
   const { themeMode, toggleTheme } = useThemeContext();
   const { user, logout } = useAuth0();
-  const { createFolder, refreshCurrentFolder, folderContents } = useFileSystem();
+  const { createFolder, refreshCurrentFolder, folderContents, currentFolderId, currentFolder } = useFileSystem();
   const [anchorEl, setAnchorEl] = useState(null);
   const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
   const [profilePopupOpen, setProfilePopupOpen] = useState(false);
@@ -75,14 +75,28 @@ const Header = () => {
   };
 
   const handleOpenUploadPopup = () => {
-    // Use folderContents from the top-level hook
-    const currentFolders = folderContents
-      .filter(item => item.type === 'folder')
-      .map(folder => ({
-        id: folder.id,
-        name: folder.name
-      }));
-    setFolders(currentFolders);
+    // Check if we're in a folder view (home or any other folder)
+    const isInHomeView = currentFolderId === 'root';
+    const isInFolderView = currentFolder !== null;
+
+    if (isInHomeView || isInFolderView) {
+      // If we're in home view or any folder, use the current folder as default destination
+      if (isInFolderView) {
+        // Use the current folder as the default destination
+        setFolders([{
+          id: currentFolder.id,
+          name: currentFolder.name
+        }]);
+      } else {
+        // In home view, we'll use an empty array to indicate root folder
+        setFolders([]);
+      }
+    } else {
+      // If we're not in home view or any folder (e.g., in starred, recent, or trash),
+      // use home directory (root) as the default destination
+      setFolders([]);
+    }
+
     setIsUploadPopupOpen(true);
   };
 
@@ -126,6 +140,26 @@ const Header = () => {
           }}
       >
         <Toolbar sx={{padding: {xs: 1, sm: 2}}}>
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            mr: 2
+          }}>
+            <Typography
+              variant="h4"
+              component="div"
+              sx={{
+                fontSize: "2em",
+                fontFamily: 'Montserrat, sans-serif',
+                fontWeight: 700,
+                color: theme.palette.mode === 'light' ? '#251605' : '#f7ecb3',
+                letterSpacing: '0.5px',
+                textShadow: theme.palette.mode === 'light' ? '1px 1px 1px rgba(0,0,0,0.1)' : 'none'
+              }}
+            >
+              File Flow
+            </Typography>
+          </Box>
           <Box sx={{flexGrow: 1}}/>
           <Box sx={{display: {xs: 'none', md: 'flex'}}}>
             {/* Upload Button */}

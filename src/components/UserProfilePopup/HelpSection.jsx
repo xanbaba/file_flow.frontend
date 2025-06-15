@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Box, 
   Typography, 
@@ -11,7 +11,8 @@ import {
   Grid, 
   useTheme, 
   alpha,
-  Link
+  Link,
+  Alert
 } from '@mui/material';
 import { 
   ExpandMore as ExpandMoreIcon,
@@ -19,9 +20,34 @@ import {
   ContactSupport as ContactIcon,
   MenuBook as GuideIcon
 } from '@mui/icons-material';
+import { useForm, ValidationError } from '@formspree/react';
+import { useAuth0 } from '@auth0/auth0-react';
 
 const HelpSection = () => {
   const theme = useTheme();
+  const { user } = useAuth0();
+  const [state, handleFormspreeSubmit] = useForm("xdkzzgwd"); // Replace with your actual Formspree form ID
+  const [subject, setSubject] = useState('');
+
+  // Custom submit handler to combine subject and message
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    // Get the message from the form
+    const formData = new FormData(event.target);
+    const message = formData.get('message');
+
+    // Create a formatted message with subject
+    const formattedMessage = `Subject: ${subject}\n\n${message}`;
+
+    // Create a new FormData object with the combined message
+    const combinedFormData = new FormData();
+    combinedFormData.append('email', user?.email || '');
+    combinedFormData.append('message', formattedMessage);
+
+    // Submit the form with the combined data
+    handleFormspreeSubmit(combinedFormData);
+  };
 
   const faqs = [
     {
@@ -79,7 +105,7 @@ const HelpSection = () => {
             Frequently Asked Questions
           </Typography>
         </Box>
-        
+
         <Box>
           {faqs.map((faq, index) => (
             <Accordion 
@@ -120,7 +146,7 @@ const HelpSection = () => {
           ))}
         </Box>
       </Paper>
-      
+
       {/* User Guide Section */}
       <Paper 
         elevation={0} 
@@ -152,7 +178,7 @@ const HelpSection = () => {
             User Guide
           </Typography>
         </Box>
-        
+
         <Box>
           <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
             Check out our comprehensive user guide to learn more about FileFlow's features and how to use them effectively.
@@ -249,7 +275,7 @@ const HelpSection = () => {
           </Grid>
         </Box>
       </Paper>
-      
+
       {/* Contact Support Section */}
       <Paper 
         elevation={0} 
@@ -280,59 +306,85 @@ const HelpSection = () => {
             Contact Support
           </Typography>
         </Box>
-        
+
         <Box>
           <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
             Can't find what you're looking for? Our support team is here to help. Fill out the form below and we'll get back to you as soon as possible.
           </Typography>
-          
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Subject
-              </Typography>
-              <TextField 
-                fullWidth 
-                placeholder="What do you need help with?"
-                size="small"
-                sx={{ 
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '10px',
-                  }
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Message
-              </Typography>
-              <TextField 
-                fullWidth 
-                multiline 
-                rows={4} 
-                placeholder="Please describe your issue in detail"
-                sx={{ 
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '10px',
-                  }
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Button 
-                variant="contained" 
-                color="primary"
-                sx={{ 
-                  mt: 1,
-                  borderRadius: '10px',
-                  textTransform: 'none',
-                  px: 3
-                }}
-              >
-                Submit Request
-              </Button>
-            </Grid>
-          </Grid>
+
+          {state.succeeded ? (
+            <Alert severity="success" sx={{ mb: 2, borderRadius: '10px' }}>
+              Thanks for reaching out! We'll get back to you as soon as possible.
+            </Alert>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              <Grid container spacing={2}>
+                {/* We don't need the hidden email field anymore as we're handling it in the custom submit handler */}
+                <ValidationError 
+                  prefix="Email" 
+                  field="email"
+                  errors={state.errors}
+                />
+
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    Subject
+                  </Typography>
+                  <TextField 
+                    fullWidth 
+                    name="subject"
+                    placeholder="What do you need help with?"
+                    size="small"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    sx={{ 
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: '10px',
+                      }
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    Message
+                  </Typography>
+                  <TextField 
+                    fullWidth 
+                    multiline 
+                    rows={4} 
+                    name="message"
+                    placeholder="Please describe your issue in detail"
+                    sx={{ 
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: '10px',
+                      }
+                    }}
+                  />
+                  <ValidationError 
+                    prefix="Message" 
+                    field="message"
+                    errors={state.errors}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Button 
+                    type="submit"
+                    variant="contained" 
+                    color="primary"
+                    disabled={state.submitting}
+                    sx={{ 
+                      mt: 1,
+                      borderRadius: '10px',
+                      textTransform: 'none',
+                      px: 3
+                    }}
+                  >
+                    {state.submitting ? 'Submitting...' : 'Submit Request'}
+                  </Button>
+                </Grid>
+              </Grid>
+            </form>
+          )}
         </Box>
       </Paper>
     </Box>

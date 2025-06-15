@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {Box, Typography, useTheme, CircularProgress} from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import FileExplorer from '../../components/FileExplorer/FileExplorer';
@@ -6,6 +6,7 @@ import BreadcrumbNavigation from '../../components/FileExplorer/BreadcrumbNaviga
 
 import {useFileSystem} from "../../contexts/FileSystemContext.jsx";
 import {useAuthToken} from "../../components/Auth/AuthTokenProvider";
+import { fetchRecentItems } from '../../services/api';
 
 const HomePage = () => {
   const theme = useTheme();
@@ -21,11 +22,15 @@ const HomePage = () => {
     navigateToFolder
   } = useFileSystem();
   const { isTokenReady } = useAuthToken();
+  const [recentItems, setRecentItems] = useState([]);
+  const [recentLoading, setRecentLoading] = useState(true);
+  const [recentError, setRecentError] = useState(null);
 
   // Use a ref to track if this is the initial mount
   const isInitialMount = useRef(true);
 
   // Check for folder parameter in URL and refresh folder contents
+  // Also fetch recent items on initial mount
   useEffect(() => {
     if (isTokenReady) {
       // Check if we have a folder parameter in the URL
@@ -42,6 +47,11 @@ const HomePage = () => {
         refreshCurrentFolder();
       }
 
+      // Fetch recent items on initial mount
+      if (isInitialMount.current) {
+        fetchRecentItemsData();
+      }
+
       // Mark as not initial mount anymore
       isInitialMount.current = false;
     }
@@ -52,6 +62,7 @@ const HomePage = () => {
     // Function to handle file operation events
     const handleFileOperation = () => {
       refreshCurrentFolder();
+      fetchRecentItemsData(); // Also refresh recent items when file operations occur
     };
 
     // Add event listeners for file operations
@@ -75,11 +86,63 @@ const HomePage = () => {
     };
   }, [refreshCurrentFolder]);
 
-  // For recent items, we'll use the first 5 items from folderContents for now
-  // In a real app, you would fetch recent items from a separate API endpoint
-  const recentItems = useMemo(() => {
-    return folderContents.slice(0, 5);
-  }, [folderContents]);
+  // Helper function to determine file color based on file extension
+  const getFileColor = (fileName) => {
+    if (!fileName) return '#9bbec7'; // Default to light blue
+
+    const extension = fileName.split('.').pop().toLowerCase();
+
+    // Document types
+    if (['doc', 'docx', 'txt', 'pdf', 'rtf'].includes(extension)) {
+      return '#9bbec7'; // Light blue for documents
+    }
+
+    // Spreadsheet types
+    if (['xls', 'xlsx', 'csv'].includes(extension)) {
+      return '#a8b7ab'; // Light green for spreadsheets
+    }
+
+    // Presentation types
+    if (['ppt', 'pptx'].includes(extension)) {
+      return '#f6e27f'; // Yellow for presentations
+    }
+
+    // Image types
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'].includes(extension)) {
+      return '#e2c391'; // Beige for images
+    }
+
+    // Default color for other file types
+    return '#9bbec7'; // Light blue as default
+  };
+
+  // Format items to add color property
+  const formatItems = (items) => {
+    return items.map(item => ({
+      ...item,
+      color: item.type === 'folder' ? '#f6e27f' : getFileColor(item.name), // Yellow for folders, dynamic for files
+    }));
+  };
+
+  // Fetch recent items
+  const fetchRecentItemsData = async () => {
+    if (!isTokenReady) {
+      console.warn('Authentication token not ready. Cannot fetch recent items.');
+      return;
+    }
+
+    try {
+      setRecentLoading(true);
+      const items = await fetchRecentItems();
+      setRecentItems(formatItems(items));
+      setRecentError(null);
+    } catch (err) {
+      console.error('Error fetching recent items:', err);
+      setRecentError('Failed to load recent items');
+    } finally {
+      setRecentLoading(false);
+    }
+  };
 
   const handleShowMoreRecent = () => {
     navigate('/recent');
@@ -115,17 +178,36 @@ const HomePage = () => {
         {!loading && !error && (
           <>
             {/* Recent Section - only show on home page */}
-            {currentFolderId === 'root' && recentItems.length > 0 && (
-              <FileExplorer
-                title="Recent"
-                items={recentItems}
-                showViewToggle={false}
-                defaultViewMode="grid"
-                showMoreLink={true}
-                onShowMoreClick={handleShowMoreRecent}
-                maxItems={5}
-                horizontalScroll={true}
-              />
+            {currentFolderId === 'root' && (
+              <>
+                {/* Loading State for Recent Items */}
+                {recentLoading && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+                    <CircularProgress />
+                  </Box>
+                )}
+
+                {/* Error State for Recent Items */}
+                {recentError && !recentLoading && (
+                  <Typography color="error" sx={{ my: 2 }}>
+                    {recentError}
+                  </Typography>
+                )}
+
+                {/* Recent Items */}
+                {!recentLoading && !recentError && recentItems.length > 0 && (
+                  <FileExplorer
+                    title="Recent"
+                    items={recentItems}
+                    showViewToggle={false}
+                    defaultViewMode="grid"
+                    showMoreLink={true}
+                    onShowMoreClick={handleShowMoreRecent}
+                    maxItems={5}
+                    horizontalScroll={true}
+                  />
+                )}
+              </>
             )}
 
             {/* Files and Folders Section */}
